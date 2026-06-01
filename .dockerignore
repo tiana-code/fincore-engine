@@ -1,0 +1,57 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea
+.vscode
+*.iml
+
+# Build outputs
+build/
+out/
+target/
+.gradle/
+**/build/
+**/out/
+**/target/
+
+# Test artifacts
+**/test-results/
+**/jacoco/
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+logs/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Local config
+.env
+.env.local
+*.local
+
+# Docs (not needed in image)
+docs/
+wiki/
+design/
+content/
+*.md
+!api/openapi.yaml
+
+# CI configs
+.github/
+.claude/
+
+# Frontend
+node_modules/
+dist/
+.next/
+
+# Private/personal
+docs/private/

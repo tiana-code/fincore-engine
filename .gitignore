@@ -1,0 +1,171 @@
+# SPDX-License-Identifier: BUSL-1.1
+
+# === FinCore Engine — .gitignore ===
+
+# === PRIVATE (НИКОГДА не коммитим) ===
+docs/private/
+.private/
+*.private.*
+secrets/
+.env
+.env.local
+.env.*.local
+
+# === Wiki staging (локальное зеркало fincore-engine.wiki.git, не коммитим в основной репо) ===
+wiki/
+# Клон вики-репо, если он лежит внутри папки основного репо (вложенный git, не коммитим)
+fincore-engine.wiki/
+
+# === Content staging (статьи/блог/newsletter/talks для itiana.dev — отдельный репо) ===
+content/
+
+# === Design staging (макеты/экспорты UI — WIP под Epic-08, не публикуем пока) ===
+design/
+
+# === Gradle ===
+.gradle/
+.kotlin/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+gradle-app.setting
+out/
+bin/
+
+# === Kotlin / Java ===
+*.class
+*.log
+*.ctxt
+.mtj.tmp/
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+!**/libs/*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+replay_pid*
+
+# === IntelliJ IDEA ===
+.idea/
+*.iws
+*.iml
+*.ipr
+.idea_modules/
+out/
+
+# === Eclipse ===
+.classpath
+.project
+.settings/
+.metadata
+.factorypath
+.apt_generated/
+.springBeans
+.sts4-cache/
+
+# === VS Code ===
+.vscode/
+*.code-workspace
+
+# === macOS ===
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# === Windows ===
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# === Linux ===
+*~
+
+# === Node / Frontend (Phase 6) ===
+node_modules/
+dist/
+.next/
+.nuxt/
+.parcel-cache/
+.cache/
+.vite/
+*.tsbuildinfo
+.eslintcache
+coverage/
+
+# === Python (для будущего fincore-ml private) ===
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# === Docker ===
+.docker-cache/
+
+# === Kubernetes / Helm ===
+deploy/helm/*/charts/
+deploy/helm/*/Chart.lock
+deploy/helm/*.tgz
+
+# === OpenAPI / Generated code ===
+generated/
+**/generated-sources/
+**/generated-resources/
+
+# === Test / Coverage ===
+/coverage/
+**/jacoco/
+**/jacocoHtml/
+**/test-results/
+.testcontainers.properties
+
+# === Logs ===
+*.log
+logs/
+*.log.*
+
+# === Temp ===
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# === SBOM / Security artifacts (генерируются CI) ===
+sbom.json
+sbom.xml
+trivy-report.*
+
+# === Helm packages (releases) ===
+deploy/helm/*.tgz
+charts-repo/
+
+# === Local overrides ===
+docker-compose.override.yml
+application-local.yml
+application-local.properties
+
+# === Claude harness + internal docs/strategy (never ship to public repo) ===
+# Public project documentation lives in the GitHub Wiki, NOT in this repo.
+# Everything under docs/ is internal working state (plans, backlog, instructions,
+# private analysis, progress logs) and must never reach the public mirror.
+.claude/
+CLAUDE.md
+description.md
+docs/
+# safety net for any future *CLAUDE*.md outside the above
+CLAUDE-*.md
+*-CLAUDE.md
+claude-*.md
+*-claude.md

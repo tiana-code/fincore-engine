@@ -1,0 +1,1095 @@
+# SPDX-License-Identifier: BUSL-1.1
+# SPDX-FileCopyrightText: 2026 FinCore Engine Authors
+#
+# OpenAPI 3.1 specification for FinCore Engine.
+# This file is the source of truth - generated docs and clients derive from here.
+# To update: edit this file, run `make api-validate`, commit. CI verifies consistency.
+
+openapi: 3.1.0
+info:
+  title: FinCore Engine API
+  description: |
+    Open-source fintech core: double-entry ledger, payment orchestration, KYC/AML compliance, JSON-DSL decision engine.
+
+    ## Versioning
+    URL-path versioning: `/v1/...`. Breaking changes go to `/v2`. Within a version, only additive changes.
+
+    ## Authentication
+    OAuth2 + OIDC (Keycloak). All requests require `Authorization: Bearer <jwt>`.
+
+    ## Identifiers
+    Resource ids are opaque prefixed ULID strings (acc_, tx_, ent_, pay_, dec_, case_, rule_), stored internally as 128-bit values. Clients must treat them as opaque strings - do not parse or construct them.
+
+    ## Idempotency
+    All POST/PUT/PATCH/DELETE accept `Idempotency-Key` header. The key must be 32-128 characters matching ^[A-Za-z0-9_-]+$. Same key + same body = same response. TTL 24h.
+
+    ## Error format
+    All 4xx/5xx responses are RFC 7807 Problem Details with `Content-Type: application/problem+json`.
+
+    ## Pagination
+    Cursor-based. Order is deterministic: created_at DESC, id DESC. Responses include `nextCursor` and `hasMore`. The cursor is opaque and integrity-protected. Use `?cursor=...&limit=...`.
+
+    ## Rate limiting
+    Per-IP (100/sec) and per-user (1000/sec). 429 response includes `Retry-After`.
+  version: 0.1.0
+  license:
+    name: BSL 1.1
+    url: https://github.com/tiana-code/fincore-engine/blob/main/LICENSE
+  contact:
+    name: FinCore Engine maintainers
+    url: https://github.com/tiana-code/fincore-engine
+
+servers:
+  - url: https://api.fincore.example.com
+    description: Production
+  - url: http://localhost:8080
+    description: Local sandbox
+
+tags:
+  - name: Ledger
+    description: Accounts, transactions, balances
+  - name: Payments
+    description: Payment lifecycle
+  - name: Compliance
+    description: KYC, AML, cases
+  - name: Decision
+    description: Rule engine evaluation and management
+  - name: Webhooks
+    description: Event subscriptions and inbound provider callbacks
+  - name: Health
+    description: Operational endpoints
+
+security:
+  - oauth2: []
+
+paths:
+
+  # ===== Ledger =====
+  /v1/accounts:
+    post:
+      tags: [Ledger]
+      summary: Create account
+      operationId: createAccount
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountRequest'
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+      security: [ { oauth2: [ledger:write] } ]
+
+  /v1/accounts/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/AccountId' }
+    get:
+      tags: [Ledger]
+      summary: Get account
+      operationId: getAccount
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Account' }
+        '404': { $ref: '#/components/responses/NotFound' }
+      security: [ { oauth2: [ledger:read] } ]
+    patch:
+      tags: [Ledger]
+      summary: Update account
+      operationId: updateAccount
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAccountRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Account' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+      security: [ { oauth2: [ledger:write] } ]
+
+  /v1/accounts/{id}/balance:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/AccountId' }
+      - name: asOf
+        in: query
+        description: >
+          Time-travel balance - point-in-time replay. Computed from entries: SUM(entries.amount) WHERE posted_at <= asOf.
+          Boundary semantics: asOf before account creation returns zero balance; asOf in the future returns current balance;
+          asOf is inclusive of entries with posted_at <= asOf (computed from entries, not the balance row).
+        schema: { type: string, format: date-time }
+    get:
+      tags: [Ledger]
+      summary: Get account balance (current or historical)
+      operationId: getAccountBalance
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Balance' }
+        '404': { $ref: '#/components/responses/NotFound' }
+      security: [ { oauth2: [ledger:read] } ]
+
+  /v1/accounts/{id}/entries:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/AccountId' }
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - name: from
+        in: query
+        schema: { type: string, format: date-time }
+      - name: to
+        in: query
+        schema: { type: string, format: date-time }
+    get:
+      tags: [Ledger]
+      summary: List entries for account
+      operationId: listAccountEntries
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntryPage' }
+      security: [ { oauth2: [ledger:read] } ]
+
+  /v1/transactions:
+    post:
+      tags: [Ledger]
+      summary: Post a double-entry transaction
+      operationId: postTransaction
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PostTransactionRequest' }
+      responses:
+        '201':
+          description: Posted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Transaction' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422':
+          description: Invariant violation (SUM != 0, currencies mixed, etc.)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+      security: [ { oauth2: [ledger:write] } ]
+
+  /v1/transactions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/TransactionId' }
+    get:
+      tags: [Ledger]
+      summary: Get transaction with entries
+      operationId: getTransaction
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Transaction' }
+        '404': { $ref: '#/components/responses/NotFound' }
+      security: [ { oauth2: [ledger:read] } ]
+
+  /v1/transactions/{id}/reverse:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/TransactionId' }
+    post:
+      tags: [Ledger]
+      summary: Reverse a posted transaction (creates compensating)
+      operationId: reverseTransaction
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReverseTransactionRequest' }
+      responses:
+        '201':
+          description: Reversal posted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Transaction' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+      security: [ { oauth2: [ledger:write] } ]
+
+  # ===== Payments =====
+  /v1/payments:
+    post:
+      tags: [Payments]
+      summary: Initiate payment
+      operationId: initiatePayment
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InitiatePaymentRequest' }
+      responses:
+        '202':
+          description: Accepted (may be PROCESSING, REJECTED, or PENDING_REVIEW)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+      security: [ { oauth2: [payments:initiate] } ]
+    get:
+      tags: [Payments]
+      summary: List payments
+      operationId: listPayments
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: state
+          in: query
+          schema: { $ref: '#/components/schemas/PaymentState' }
+        - name: fromAccountId
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaymentPage' }
+      security: [ { oauth2: [payments:read] } ]
+
+  /v1/payments/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: include
+        in: query
+        schema: { type: string, enum: [events] }
+    get:
+      tags: [Payments]
+      summary: Get payment status
+      operationId: getPayment
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+        '404': { $ref: '#/components/responses/NotFound' }
+      security: [ { oauth2: [payments:read] } ]
+
+  /v1/payments/{id}/cancel:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Payments]
+      summary: Cancel payment (only in CREATED or PENDING_REVIEW)
+      operationId: cancelPayment
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Cancelled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+        '409': { $ref: '#/components/responses/Conflict' }
+      security: [ { oauth2: [payments:write] } ]
+
+  # ===== Compliance =====
+  /v1/kyc/sessions:
+    post:
+      tags: [Compliance]
+      summary: Start KYC session
+      operationId: createKycSession
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateKycSessionRequest' }
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KycSession' }
+      security: [ { oauth2: [compliance:write] } ]
+
+  /v1/compliance/cases:
+    get:
+      tags: [Compliance]
+      summary: List compliance cases
+      operationId: listComplianceCases
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: status
+          in: query
+          schema: { type: string, enum: [OPEN, IN_REVIEW, RESOLVED, ESCALATED] }
+        - name: priority
+          in: query
+          schema: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompliancePage' }
+      security: [ { oauth2: [compliance:read] } ]
+
+  /v1/compliance/cases/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Compliance]
+      summary: Get case details with AI explanation
+      operationId: getComplianceCase
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplianceCaseDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+      security: [ { oauth2: [compliance:read] } ]
+
+  /v1/compliance/cases/{id}/resolve:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Compliance]
+      summary: Resolve compliance case
+      operationId: resolveComplianceCase
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResolveCaseRequest' }
+      responses:
+        '200':
+          description: Resolved
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplianceCase' }
+        '409': { $ref: '#/components/responses/Conflict' }
+      security: [ { oauth2: [compliance:resolve] } ]
+
+  # ===== Decision =====
+  /v1/decision/evaluate:
+    post:
+      tags: [Decision]
+      summary: Evaluate a decision
+      operationId: evaluateDecision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EvaluateDecisionRequest' }
+      responses:
+        '200':
+          description: Decision result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DecisionResult' }
+      security: [ { oauth2: [decision:evaluate] } ]
+
+  /v1/decision/rules:
+    post:
+      tags: [Decision]
+      summary: Create rule
+      operationId: createDecisionRule
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateDecisionRuleRequest' }
+      responses:
+        '201':
+          description: Created (DRAFT)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DecisionRule' }
+      security: [ { oauth2: [decision:admin] } ]
+    get:
+      tags: [Decision]
+      summary: List rules
+      operationId: listDecisionRules
+      parameters:
+        - name: ruleSetId
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string, enum: [DRAFT, ACTIVE, DEPRECATED] }
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DecisionRulePage' }
+      security: [ { oauth2: [decision:read] } ]
+
+  /v1/decision/rules/{id}/activate:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Decision]
+      summary: Activate decision rule
+      operationId: activateDecisionRule
+      responses:
+        '200':
+          description: Activated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DecisionRule' }
+      security: [ { oauth2: [decision:admin] } ]
+
+  # ===== Webhooks =====
+  /v1/webhooks/subscriptions:
+    post:
+      tags: [Webhooks]
+      summary: Create webhook subscription
+      operationId: createWebhookSubscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateWebhookSubscriptionRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WebhookSubscription' }
+      security: [ { oauth2: [webhook:subscribe] } ]
+
+  /v1/webhooks/payments/{providerId}:
+    parameters:
+      - name: providerId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Webhooks]
+      summary: (Inbound) Bank provider webhook
+      operationId: ingestProviderWebhook
+      security: []
+      parameters:
+        - name: X-Provider-Signature
+          in: header
+          required: true
+          schema: { type: string }
+        - name: X-Provider-Event-Id
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200':
+          description: Acknowledged
+        '401':
+          description: Invalid signature
+
+  # ===== Health =====
+  /actuator/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      operationId: getHealth
+      security: []
+      responses:
+        '200':
+          description: UP
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [UP, DOWN] }
+
+components:
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Unique key per logical operation. Must be 32-128 characters, charset [A-Za-z0-9_-]. SHA-256 of body cached for 24h.
+      schema: { type: string, minLength: 32, maxLength: 128, pattern: '^[A-Za-z0-9_-]+$' }
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: Auto-generated if omitted. Echoed back in response and propagated downstream.
+      schema: { type: string, format: uuid }
+    Cursor:
+      name: cursor
+      in: query
+      description: 'Opaque, integrity-protected cursor. Order is created_at DESC, id DESC.'
+      schema: { type: string, maxLength: 1024 }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, default: 50, minimum: 1, maximum: 200 }
+
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      description: OAuth2 + OIDC via Keycloak
+      flows:
+        clientCredentials:
+          tokenUrl: https://keycloak.example.com/realms/fincore/protocol/openid-connect/token
+          scopes:
+            ledger:read: Read ledger resources
+            ledger:write: Write ledger (create accounts, post transactions)
+            payments:read: Read payments
+            payments:initiate: Initiate payments
+            payments:write: Manage payments (cancel, retry)
+            compliance:read: Read KYC, AML, cases
+            compliance:write: Manage KYC sessions
+            compliance:resolve: Resolve compliance cases
+            decision:read: Read rules and logs
+            decision:evaluate: Call decision engine
+            decision:admin: Manage rules
+            webhook:subscribe: Manage webhook subscriptions
+        authorizationCode:
+          authorizationUrl: https://keycloak.example.com/realms/fincore/protocol/openid-connect/auth
+          tokenUrl: https://keycloak.example.com/realms/fincore/protocol/openid-connect/token
+          scopes:
+            openid: OpenID Connect
+            profile: User profile
+            email: User email
+
+  schemas:
+
+    AccountId:
+      type: string
+      pattern: '^acc_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: 'Prefixed ULID. Opaque.'
+
+    TransactionId:
+      type: string
+      pattern: '^tx_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: 'Prefixed ULID. Opaque.'
+
+    EntryId:
+      type: string
+      pattern: '^ent_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: 'Prefixed ULID. Opaque.'
+
+    Problem:
+      type: object
+      description: RFC 7807 Problem Details
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string, format: uri }
+        correlationId: { type: string, format: uuid }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              code: { type: string }
+              message: { type: string }
+
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount:
+          type: string
+          description: Decimal amount. Use string to avoid floating-point issues.
+          example: "100.00"
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          pattern: '^[A-Z]{3}$'
+          example: EUR
+
+    AccountType:
+      type: string
+      enum: [ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE, USER_WALLET, FEE, RESERVE, SUSPENSE]
+
+    AccountStatus:
+      type: string
+      enum: [ACTIVE, FROZEN, CLOSED]
+
+    Account:
+      type: object
+      required: [id, name, type, currency, status, createdAt, updatedAt, version, createdBy, updatedBy]
+      properties:
+        id: { $ref: '#/components/schemas/AccountId' }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        type: { $ref: '#/components/schemas/AccountType' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        status: { $ref: '#/components/schemas/AccountStatus' }
+        metadata:
+          type: object
+          additionalProperties: { type: string }
+        version: { type: integer, format: int64 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        createdBy: { type: string }
+        updatedBy: { type: string }
+
+    CreateAccountRequest:
+      type: object
+      required: [name, type, currency]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        type: { $ref: '#/components/schemas/AccountType' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        metadata:
+          type: object
+          additionalProperties: { type: string }
+          maxProperties: 16
+
+    UpdateAccountRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        status: { $ref: '#/components/schemas/AccountStatus' }
+        metadata:
+          type: object
+          additionalProperties: { type: string }
+
+    Balance:
+      type: object
+      required: [accountId, currency, balance, asOf]
+      properties:
+        accountId: { $ref: '#/components/schemas/AccountId' }
+        currency: { type: string }
+        balance: { type: string, description: 'Decimal balance' }
+        asOf: { type: string, format: date-time }
+        version: { type: integer, format: int64 }
+
+    EntryDirection:
+      type: string
+      enum: [DEBIT, CREDIT]
+
+    Entry:
+      type: object
+      required: [id, transactionId, accountId, amount, currency, direction, createdAt]
+      properties:
+        id: { $ref: '#/components/schemas/EntryId' }
+        transactionId: { $ref: '#/components/schemas/TransactionId' }
+        accountId: { $ref: '#/components/schemas/AccountId' }
+        amount: { type: string }
+        currency: { type: string }
+        direction: { $ref: '#/components/schemas/EntryDirection' }
+        createdAt: { type: string, format: date-time }
+
+    EntryPage:
+      type: object
+      required: [items, hasMore]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Entry' }
+        nextCursor: { type: string }
+        hasMore: { type: boolean }
+
+    TransactionStatus:
+      type: string
+      enum: [POSTED, REVERSED]
+
+    Transaction:
+      type: object
+      required: [id, reference, status, entries, postedAt, createdAt, createdBy]
+      properties:
+        id: { $ref: '#/components/schemas/TransactionId' }
+        reference: { type: string, maxLength: 255 }
+        description: { type: string, maxLength: 2048 }
+        status: { $ref: '#/components/schemas/TransactionStatus' }
+        reversesId:
+          allOf:
+            - $ref: '#/components/schemas/TransactionId'
+          nullable: true
+        entries:
+          type: array
+          minItems: 2
+          maxItems: 1000
+          items: { $ref: '#/components/schemas/Entry' }
+        metadata:
+          type: object
+          additionalProperties: { type: string }
+        postedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string }
+
+    PostTransactionRequest:
+      type: object
+      required: [reference, entries]
+      properties:
+        reference: { type: string, minLength: 1, maxLength: 255 }
+        description: { type: string, maxLength: 2048 }
+        entries:
+          type: array
+          minItems: 2
+          maxItems: 1000
+          items:
+            type: object
+            required: [accountId, amount, currency, direction]
+            properties:
+              accountId: { $ref: '#/components/schemas/AccountId' }
+              amount:
+                type: string
+                pattern: '^-?\d+(\.\d{1,18})?$'
+              currency: { type: string, pattern: '^[A-Z]{3}$' }
+              direction: { $ref: '#/components/schemas/EntryDirection' }
+        metadata:
+          type: object
+          additionalProperties: { type: string }
+
+    ReverseTransactionRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 2048 }
+
+    PaymentState:
+      type: string
+      enum: [CREATED, PROCESSING, COMPLETED, FAILED, PERMANENTLY_FAILED, REJECTED, PENDING_REVIEW, CANCELLED]
+
+    Payment:
+      type: object
+      required: [id, idempotencyKey, amount, currency, state, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        idempotencyKey: { type: string }
+        fromAccountId: { type: string, format: uuid, nullable: true }
+        toAccountId: { type: string, format: uuid, nullable: true }
+        externalCounterparty:
+          type: object
+          nullable: true
+          properties:
+            name: { type: string }
+            iban: { type: string }
+            bic: { type: string }
+            country: { type: string, pattern: '^[A-Z]{2}$' }
+        amount: { type: string }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        state: { $ref: '#/components/schemas/PaymentState' }
+        ledgerTransactionId: { type: string, format: uuid, nullable: true }
+        providerRef: { type: string, nullable: true }
+        attempts: { type: integer }
+        rejectReason: { type: string, nullable: true }
+        complianceCaseId: { type: string, format: uuid, nullable: true }
+        events:
+          type: array
+          nullable: true
+          items: { $ref: '#/components/schemas/PaymentEvent' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        version: { type: integer, format: int64 }
+
+    InitiatePaymentRequest:
+      type: object
+      required: [amount, currency]
+      properties:
+        fromAccountId: { type: string, format: uuid }
+        toAccountId: { type: string, format: uuid }
+        externalCounterparty:
+          type: object
+          properties:
+            name: { type: string, minLength: 1, maxLength: 255 }
+            iban: { type: string }
+            bic: { type: string }
+            country: { type: string, pattern: '^[A-Z]{2}$' }
+        amount: { type: string, pattern: '^\d+(\.\d{1,18})?$' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        reference: { type: string, maxLength: 255 }
+        metadata:
+          type: object
+          additionalProperties: { type: string }
+
+    PaymentEvent:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string }
+        payload: { type: object, additionalProperties: true }
+        occurredAt: { type: string, format: date-time }
+        actor:
+          type: object
+          properties:
+            type: { type: string, enum: [USER, SERVICE, SYSTEM] }
+            id: { type: string }
+
+    PaymentPage:
+      type: object
+      required: [items, hasMore]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Payment' }
+        nextCursor: { type: string }
+        hasMore: { type: boolean }
+
+    KycSession:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        provider: { type: string }
+        hostedUrl: { type: string, format: uri, nullable: true }
+        status: { type: string, enum: [PENDING, AWAITING_DOCUMENTS, IN_REVIEW, APPROVED, REJECTED, EXPIRED, MANUAL_REVIEW] }
+        expiresAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        version: { type: integer, format: int64 }
+
+    CreateKycSessionRequest:
+      type: object
+      required: [userId]
+      properties:
+        userId: { type: string, format: uuid }
+        provider: { type: string, default: sandbox }
+        returnUrl: { type: string, format: uri }
+
+    ComplianceCase:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        alertId: { type: string, format: uuid, nullable: true }
+        paymentId: { type: string, format: uuid, nullable: true }
+        kycSessionId: { type: string, format: uuid, nullable: true }
+        status: { type: string, enum: [OPEN, IN_REVIEW, RESOLVED, ESCALATED] }
+        decision: { type: string, nullable: true, enum: [APPROVED, REJECTED, ESCALATED_TO_REGULATOR] }
+        priority: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] }
+        assignedTo: { type: string, nullable: true }
+        resolvedBy: { type: string, nullable: true }
+        resolvedAt: { type: string, format: date-time, nullable: true }
+        resolutionReason: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ComplianceCaseDetail:
+      allOf:
+        - $ref: '#/components/schemas/ComplianceCase'
+        - type: object
+          properties:
+            aiExplanation: { type: string, nullable: true, description: 'LLM-generated explanation if AmlCopilot configured' }
+            draftReport: { type: string, nullable: true }
+            notes:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  authorId: { type: string }
+                  body: { type: string }
+                  createdAt: { type: string, format: date-time }
+
+    CompliancePage:
+      type: object
+      required: [items, hasMore]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ComplianceCase' }
+        nextCursor: { type: string }
+        hasMore: { type: boolean }
+
+    ResolveCaseRequest:
+      type: object
+      required: [decision, reason]
+      properties:
+        decision: { type: string, enum: [APPROVED, REJECTED, ESCALATED_TO_REGULATOR] }
+        reason: { type: string, minLength: 1, maxLength: 2048 }
+
+    EvaluateDecisionRequest:
+      type: object
+      required: [ruleSetId, context]
+      properties:
+        ruleSetId: { type: string, maxLength: 64 }
+        context:
+          type: object
+          additionalProperties: true
+
+    DecisionResult:
+      type: object
+      required: [decision, matchedRules, latencyMs]
+      properties:
+        decision: { type: string, enum: [APPROVE, REJECT, REVIEW] }
+        matchedRules:
+          type: array
+          items:
+            type: object
+            properties:
+              ruleId: { type: string, format: uuid }
+              ruleVersion: { type: integer }
+              priority: { type: integer }
+              explanation: { type: string }
+        explanation: { type: string }
+        latencyMs: { type: integer }
+        decisionLogId: { type: string, format: uuid }
+
+    DecisionRule:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        ruleSetId: { type: string }
+        name: { type: string }
+        status: { type: string, enum: [DRAFT, ACTIVE, DEPRECATED] }
+        currentVersion: { type: integer }
+        priority: { type: integer }
+        terminate: { type: boolean }
+        definition: { type: object, description: 'JSON DSL' }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string }
+
+    CreateDecisionRuleRequest:
+      type: object
+      required: [ruleSetId, name, definition]
+      properties:
+        ruleSetId: { type: string, maxLength: 64 }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        priority: { type: integer, default: 100 }
+        terminate: { type: boolean, default: false }
+        definition: { type: object, description: 'JSON DSL - validated server-side' }
+
+    DecisionRulePage:
+      type: object
+      required: [items, hasMore]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/DecisionRule' }
+        nextCursor: { type: string }
+        hasMore: { type: boolean }
+
+    WebhookSubscription:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        url: { type: string, format: uri }
+        events:
+          type: array
+          items: { type: string }
+        status: { type: string, enum: [ACTIVE, PAUSED, DISABLED_DEAD] }
+        createdAt: { type: string, format: date-time }
+
+    CreateWebhookSubscriptionRequest:
+      type: object
+      required: [url, events, secret]
+      properties:
+        url: { type: string, format: uri }
+        events:
+          type: array
+          minItems: 1
+          items: { type: string }
+        secret: { type: string, minLength: 32, maxLength: 256 }
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Forbidden:
+      description: Forbidden
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: Not found
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Conflict:
+      description: Conflict (e.g. idempotency mismatch, illegal state transition)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    UnprocessableEntity:
+      description: Unprocessable entity (invariant violation)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    TooManyRequests:
+      description: Rate limited
+      headers:
+        Retry-After:
+          schema: { type: integer }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }

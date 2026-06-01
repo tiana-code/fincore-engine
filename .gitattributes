@@ -1,0 +1,69 @@
+# Auto-detect text files, normalize to LF on commit
+* text=auto eol=lf
+
+# Source code — force LF
+*.kt        text eol=lf diff=kotlin
+*.kts       text eol=lf diff=kotlin
+*.java      text eol=lf diff=java
+*.py        text eol=lf diff=python
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.js        text eol=lf
+*.jsx       text eol=lf
+*.sh        text eol=lf
+*.bash      text eol=lf
+
+# Config and data
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.json      text eol=lf
+*.xml       text eol=lf
+*.toml      text eol=lf
+*.properties text eol=lf
+*.sql       text eol=lf
+
+# Docs
+*.md        text eol=lf
+*.txt       text eol=lf
+LICENSE     text eol=lf
+CHANGELOG   text eol=lf
+
+# Windows scripts
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+
+# Gradle wrapper
+gradlew     text eol=lf
+gradlew.bat text eol=crlf
+*.jar       binary
+
+# Binary files
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.svg       text eol=lf
+*.pdf       binary
+*.zip       binary
+*.tar       binary
+*.gz        binary
+
+# Linguist overrides — don't count vendored/generated in language stats
+docs/**        linguist-documentation
+wiki/**        linguist-documentation
+**/generated/** linguist-generated
+**/build/**     linguist-generated
+api/openapi.yaml linguist-detectable
+
+# Export-ignore — exclude from git archive tarballs
+.github/        export-ignore
+.claude/        export-ignore
+.editorconfig   export-ignore
+.gitattributes  export-ignore
+.gitignore      export-ignore
+.dockerignore   export-ignore
+docs/private/   export-ignore
+content/        export-ignore
+CLAUDE.md       export-ignore
