@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.0.21"
+kotlin = "2.3.21"
 spring-boot = "3.5.2"
 hibernate = "6.6.18.Final"
 liquibase = "4.31.1"
