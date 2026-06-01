@@ -1,0 +1,28 @@
+name: Dependency Submission
+
+# GitHub does not parse build.gradle.kts on its own, so submit the resolved
+# graph for Dependency Review and Dependabot alerts to use.
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: write
+
+jobs:
+  dependency-submission:
+    name: Submit Gradle Dependency Graph
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Submit dependency graph
+        uses: gradle/actions/dependency-submission@v4

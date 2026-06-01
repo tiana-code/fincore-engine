@@ -1,7 +1,7 @@
 version: 2
 
 updates:
-  # Gradle dependencies
+  # Gradle dependencies - grouped so updates arrive as a few reviewable PRs.
   - package-ecosystem: gradle
     directory: "/"
     schedule:
@@ -9,27 +9,32 @@ updates:
       day: monday
       time: "06:00"
       timezone: Europe/Berlin
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
     labels:
       - dependencies
       - area:infra
     commit-message:
       prefix: chore(deps)
+    # Toolchain is version-locked and bumped manually in lockstep: Kotlin and
+    # detekt must match (detekt 1.23.x supports Kotlin up to 2.0.21), and KSP
+    # tracks Kotlin. Let Dependabot manage everything else.
+    ignore:
+      - dependency-name: "org.jetbrains.kotlin*"
+      - dependency-name: "io.gitlab.arturbosch.detekt*"
+      - dependency-name: "com.google.devtools.ksp*"
     groups:
-      spring-boot:
-        patterns:
-          - "org.springframework.boot*"
-          - "io.spring*"
-      kotlin:
-        patterns:
-          - "org.jetbrains.kotlin*"
-          - "org.jetbrains.kotlinx*"
-      testcontainers:
-        patterns:
-          - "org.testcontainers*"
-      kotest:
+      production-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
+      test-and-tooling:
         patterns:
           - "io.kotest*"
+          - "io.mockk*"
+          - "org.testcontainers*"
+          - "org.junit*"
+          - "com.diffplug.spotless*"
 
   # Docker base images
   - package-ecosystem: docker
@@ -45,7 +50,7 @@ updates:
     commit-message:
       prefix: chore(deps)
 
-  # GitHub Actions
+  # GitHub Actions - all bumps in a single weekly PR.
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
@@ -53,8 +58,13 @@ updates:
       day: monday
       time: "06:00"
       timezone: Europe/Berlin
+    open-pull-requests-limit: 5
     labels:
       - dependencies
       - area:infra
     commit-message:
       prefix: chore(deps)
+    groups:
+      github-actions:
+        patterns:
+          - "*"
