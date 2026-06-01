@@ -1,0 +1,72 @@
+name: Feature Request
+description: Propose a new feature or enhancement for FinCore Engine.
+title: "[FEAT] "
+labels: ["type:feature", "status:needs-design"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to propose a feature. Before opening, please check
+        [existing issues](https://github.com/tiana-code/fincore-engine/issues) and
+        [Discussions](https://github.com/tiana-code/fincore-engine/discussions) to avoid duplicates.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Describe the problem or gap this feature would address. What can't you do today?
+      placeholder: |
+        Currently there is no way to query balances as-of a past timestamp without
+        replaying all events manually...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the feature you'd like to see. Be as specific as possible.
+      placeholder: |
+        Add a `asOf` query parameter to GET /v1/accounts/{id}/balance that accepts
+        an ISO-8601 timestamp and returns the balance at that point in time using
+        the ledger's temporal query capability...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What alternatives have you considered or tried? Why don't they work?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of FinCore Engine does this relate to?
+      options:
+        - Ledger
+        - Payments
+        - Compliance / KYC
+        - Compliance / AML
+        - Decision Engine
+        - Event Bus / Outbox
+        - Observability
+        - API / Gateway
+        - Infrastructure / Deploy
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Links to related ADRs, wiki pages, RFCs, or other relevant context.
+    validations:
+      required: false

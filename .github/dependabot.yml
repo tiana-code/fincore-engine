@@ -1,0 +1,60 @@
+version: 2
+
+updates:
+  # Gradle dependencies
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - area:infra
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      spring-boot:
+        patterns:
+          - "org.springframework.boot*"
+          - "io.spring*"
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+          - "org.jetbrains.kotlinx*"
+      testcontainers:
+        patterns:
+          - "org.testcontainers*"
+      kotest:
+        patterns:
+          - "io.kotest*"
+
+  # Docker base images
+  - package-ecosystem: docker
+    directory: "/services/ledger"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    labels:
+      - dependencies
+      - area:infra
+    commit-message:
+      prefix: chore(deps)
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    labels:
+      - dependencies
+      - area:infra
+    commit-message:
+      prefix: chore(deps)

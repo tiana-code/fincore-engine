@@ -1,0 +1,64 @@
+build:
+  maxIssues: 0
+
+complexity:
+  CyclomaticComplexMethod:
+    threshold: 15
+  LongMethod:
+    threshold: 30
+  LongParameterList:
+    functionThreshold: 8
+    constructorThreshold: 8
+  TooManyFunctions:
+    thresholdInClasses: 20
+  ComplexCondition:
+    threshold: 4
+
+style:
+  MaxLineLength:
+    maxLineLength: 140
+  MagicNumber:
+    ignoreNumbers: ['-1', '0', '1', '2', '100']
+    ignoreEnums: true
+    ignoreConstantDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreAnnotation: true
+  ReturnCount:
+    max: 3
+  UnusedPrivateMember:
+    active: true
+  ForbiddenComment:
+    active: true
+    values: ['FIXME', 'STOPSHIP']
+
+empty-blocks:
+  EmptyCatchBlock:
+    active: true
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: true
+  TooGenericExceptionThrown:
+    active: true
+
+naming:
+  ClassNaming:
+    classPattern: '[A-Z$][a-zA-Z0-9$]*'
+  FunctionNaming:
+    active: true
+    ignoreAnnotated: ['Test', 'ParameterizedTest', 'BeforeEach', 'AfterEach']
+
+performance:
+  SpreadOperator:
+    active: false
+
+potential-bugs:
+  EqualsAlwaysReturnsTrueOrFalse:
+    active: true
+  UnsafeCallOnNullableType:
+    active: true
+
+coroutines:
+  active: true
+  GlobalCoroutineUsage:
+    active: true

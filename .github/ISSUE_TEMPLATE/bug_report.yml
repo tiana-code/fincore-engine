@@ -1,0 +1,86 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in FinCore Engine.
+title: "[BUG] "
+labels: ["type:bug", "status:needs-review"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a bug. Please fill in as much detail as possible
+        so we can reproduce and fix it quickly. For security vulnerabilities, please use the
+        [Security Advisories](https://github.com/tiana-code/fincore-engine/security/advisories/new)
+        instead and do **not** open a public issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug.
+      placeholder: When I call POST /v1/accounts, the server returns 500 instead of 201...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Minimal steps to reproduce the behavior.
+      placeholder: |
+        1. Start the ledger service with docker compose up
+        2. Call POST /v1/accounts with body { ... }
+        3. Observe 500 response
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened? Include stack traces if relevant.
+    validations:
+      required: true
+
+  - type: input
+    id: fincore-version
+    attributes:
+      label: FinCore Engine Version
+      description: The version tag or commit SHA where you observed the bug.
+      placeholder: v0.1.0 or abc1234
+    validations:
+      required: true
+
+  - type: input
+    id: java-version
+    attributes:
+      label: Java / JDK Version
+      description: Output of `java -version`
+      placeholder: openjdk 21.0.3 2024-04-16 LTS (Eclipse Temurin)
+    validations:
+      required: false
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: OS and version where you are running FinCore Engine.
+      placeholder: Ubuntu 24.04 / macOS 14.4 / Windows 11 (WSL2)
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Logs, configuration snippets, docker-compose overrides, anything relevant.
+    validations:
+      required: false

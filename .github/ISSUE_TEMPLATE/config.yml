@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Questions & Discussion
+    url: https://github.com/tiana-code/fincore-engine/discussions
+    about: Ask questions, share ideas, or discuss FinCore Engine in GitHub Discussions.
+
+  - name: Security Vulnerabilities
+    url: https://github.com/tiana-code/fincore-engine/security/advisories/new
+    about: Report security vulnerabilities privately via GitHub Security Advisories. Do NOT open a public issue.
+
+  - name: Documentation (Wiki)
+    url: https://github.com/tiana-code/fincore-engine/wiki
+    about: Read the full documentation including architecture, ADRs, API reference, and developer guides.
