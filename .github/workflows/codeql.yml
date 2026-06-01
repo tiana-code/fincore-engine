@@ -30,34 +30,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ["java-kotlin"]
+        include:
+          - language: java-kotlin
+            build-mode: none
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21 (Temurin)
-        uses: actions/setup-java@v4
-        with:
-          java-version: "21"
-          distribution: temurin
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          cache-read-only: true
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
           queries: security-extended,security-and-quality
-
-      - name: Build for CodeQL
-        run: ./gradlew assemble --no-daemon -x test
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
