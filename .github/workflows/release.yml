@@ -26,18 +26,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Set up JDK 21 (Temurin)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: "21"
           distribution: temurin
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -53,18 +53,18 @@ jobs:
         uses: sigstore/cosign-installer@v3
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build and push ledger-service Docker image
         id: docker-build-ledger
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: services/ledger
           file: services/ledger/Dockerfile
@@ -86,7 +86,7 @@ jobs:
             ghcr.io/tiana-code/fincore-ledger@${{ steps.docker-build-ledger.outputs.digest }}
 
       - name: Set up Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v5
         with:
           version: "3.16.x"
 
@@ -111,14 +111,14 @@ jobs:
         run: ./gradlew cyclonedxBom --no-daemon
 
       - name: Create GitHub Release
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           release-type: simple
           config-file: .github/release-please-config.json
 
       - name: Upload SBOM to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: "**/build/reports/bom.json"
         env:
