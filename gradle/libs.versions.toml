@@ -20,7 +20,7 @@ jackson = "2.18.3"
 cloudevents = "4.0.1"
 ksp = "2.0.21-1.0.28"
 spring-dependency-management = "1.1.7"
-spotless = "7.0.4"
+spotless = "8.6.0"
 
 [libraries]
 # Kotlin
