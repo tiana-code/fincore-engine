@@ -12,6 +12,7 @@ import com.fincore.ledger.domain.enum.EntryDirection
 import com.fincore.ledger.domain.enum.EntryDirection.CREDIT
 import com.fincore.ledger.domain.enum.EntryDirection.DEBIT
 import com.fincore.ledger.domain.enum.TransactionStatus
+import com.fincore.ledger.domain.exception.CurrencyConsistencyViolationException
 import com.fincore.ledger.domain.exception.DomainException
 import com.fincore.ledger.domain.exception.DoubleEntryViolationException
 import io.kotest.assertions.throwables.shouldThrow
@@ -34,12 +35,16 @@ class TransactionTest {
         amount = Money.of(amount, currency),
     )
 
-    private fun buildTransaction(entries: List<Entry>): Transaction =
+    private fun buildTransaction(
+        entries: List<Entry>,
+        currency: Currency = Currency.USD,
+    ): Transaction =
         Transaction(
             id = TransactionId.generate(),
             reference = "ref-${System.nanoTime()}",
             description = null,
             entries = entries,
+            currency = currency,
         )
 
     @Test
@@ -53,10 +58,97 @@ class TransactionTest {
                     entry(accountId = accountA, direction = DEBIT, amount = BigDecimal("100.00")),
                     entry(accountId = accountB, direction = CREDIT, amount = BigDecimal("-100.00")),
                 ),
+                currency = Currency.USD,
             )
 
         transaction.entries shouldHaveSize 2
         transaction.status shouldBe TransactionStatus.POSTED
+    }
+
+    @Test
+    fun `should throw CurrencyConsistencyViolationException when entry currency does not match transaction currency`() {
+        val exception =
+            shouldThrow<CurrencyConsistencyViolationException> {
+                buildTransaction(
+                    listOf(
+                        entry(direction = DEBIT, amount = BigDecimal("100.00"), currency = Currency.USD),
+                        entry(direction = CREDIT, amount = BigDecimal("-100.00"), currency = Currency.EUR),
+                    ),
+                    currency = Currency.USD,
+                )
+            }
+        exception.message.shouldNotBeBlank()
+    }
+
+    @Test
+    fun `should throw CurrencyConsistencyViolationException when all entries use foreign currency even if balanced`() {
+        shouldThrow<CurrencyConsistencyViolationException> {
+            buildTransaction(
+                listOf(
+                    entry(direction = DEBIT, amount = BigDecimal("100.00"), currency = Currency.USD),
+                    entry(direction = CREDIT, amount = BigDecimal("-100.00"), currency = Currency.USD),
+                ),
+                currency = Currency.EUR,
+            )
+        }
+    }
+
+    @Test
+    fun `should throw DoubleEntryViolationException when entries do not sum to zero`() {
+        val exception =
+            shouldThrow<DoubleEntryViolationException> {
+                buildTransaction(
+                    listOf(
+                        entry(direction = DEBIT, amount = BigDecimal("100.00")),
+                        entry(direction = CREDIT, amount = BigDecimal("-90.00")),
+                    ),
+                    currency = Currency.USD,
+                )
+            }
+        exception.message.shouldNotBeBlank()
+    }
+
+    @Test
+    fun `should throw CurrencyConsistencyViolationException before balance violation when entries mismatch and are unbalanced`() {
+        shouldThrow<CurrencyConsistencyViolationException> {
+            buildTransaction(
+                listOf(
+                    entry(direction = DEBIT, amount = BigDecimal("100.00"), currency = Currency.EUR),
+                    entry(direction = CREDIT, amount = BigDecimal("-90.00"), currency = Currency.EUR),
+                ),
+                currency = Currency.USD,
+            )
+        }
+    }
+
+    @Test
+    fun `should throw CurrencyConsistencyViolationException when entries mix currencies even if balanced per currency`() {
+        shouldThrow<CurrencyConsistencyViolationException> {
+            buildTransaction(
+                listOf(
+                    entry(direction = DEBIT, amount = BigDecimal("100.00"), currency = Currency.USD),
+                    entry(direction = CREDIT, amount = BigDecimal("-100.00"), currency = Currency.USD),
+                    entry(direction = DEBIT, amount = BigDecimal("50.00"), currency = Currency.EUR),
+                    entry(direction = CREDIT, amount = BigDecimal("-50.00"), currency = Currency.EUR),
+                ),
+                currency = Currency.USD,
+            )
+        }
+    }
+
+    @Test
+    fun `should throw CurrencyConsistencyViolationException when entries mix currencies and EUR entries do not sum to zero`() {
+        shouldThrow<CurrencyConsistencyViolationException> {
+            buildTransaction(
+                listOf(
+                    entry(direction = DEBIT, amount = BigDecimal("100.00"), currency = Currency.USD),
+                    entry(direction = CREDIT, amount = BigDecimal("-100.00"), currency = Currency.USD),
+                    entry(direction = DEBIT, amount = BigDecimal("50.00"), currency = Currency.EUR),
+                    entry(direction = CREDIT, amount = BigDecimal("-40.00"), currency = Currency.EUR),
+                ),
+                currency = Currency.USD,
+            )
+        }
     }
 
     @Test
@@ -75,20 +167,6 @@ class TransactionTest {
             )
 
         transaction.entries shouldHaveSize 4
-    }
-
-    @Test
-    fun `should throw DoubleEntryViolationException when entries do not sum to zero`() {
-        val exception =
-            shouldThrow<DoubleEntryViolationException> {
-                buildTransaction(
-                    listOf(
-                        entry(direction = DEBIT, amount = BigDecimal("100.00")),
-                        entry(direction = CREDIT, amount = BigDecimal("-90.00")),
-                    ),
-                )
-            }
-        exception.message.shouldNotBeBlank()
     }
 
     @Test
@@ -133,14 +211,13 @@ class TransactionTest {
 
     @Test
     fun `should throw DomainException when entry list exceeds 1000 entries`() {
-        val account = AccountId.generate()
         val entries =
-            (1..501).flatMap { i ->
+            (1..501).flatMap {
                 listOf(
                     entry(accountId = AccountId.generate(), direction = DEBIT, amount = BigDecimal("1.00")),
                     entry(accountId = AccountId.generate(), direction = CREDIT, amount = BigDecimal("-1.00")),
                 )
-            } // 1002 entries — all balanced but over limit
+            }
 
         shouldThrow<DomainException> {
             buildTransaction(entries)
@@ -155,40 +232,10 @@ class TransactionTest {
                     entry(accountId = AccountId.generate(), direction = DEBIT, amount = BigDecimal("1.00")),
                     entry(accountId = AccountId.generate(), direction = CREDIT, amount = BigDecimal("-1.00")),
                 )
-            } // exactly 1000
+            }
 
         val transaction = buildTransaction(entries)
         transaction.entries shouldHaveSize 1000
-    }
-
-    @Test
-    fun `should throw DoubleEntryViolationException when EUR entries do not sum to zero in mixed-currency transaction`() {
-        val eur = Currency.EUR
-        shouldThrow<DoubleEntryViolationException> {
-            buildTransaction(
-                listOf(
-                    entry(direction = DEBIT, amount = BigDecimal("100.00"), currency = Currency.USD),
-                    entry(direction = CREDIT, amount = BigDecimal("-100.00"), currency = Currency.USD),
-                    entry(direction = DEBIT, amount = BigDecimal("50.00"), currency = eur),
-                    entry(direction = CREDIT, amount = BigDecimal("-40.00"), currency = eur),
-                ),
-            )
-        }
-    }
-
-    @Test
-    fun `should construct successfully when entries are balanced per currency in a multi-currency transaction`() {
-        val eur = Currency.EUR
-        val transaction =
-            buildTransaction(
-                listOf(
-                    entry(direction = DEBIT, amount = BigDecimal("100.00"), currency = Currency.USD),
-                    entry(direction = CREDIT, amount = BigDecimal("-100.00"), currency = Currency.USD),
-                    entry(direction = DEBIT, amount = BigDecimal("50.00"), currency = eur),
-                    entry(direction = CREDIT, amount = BigDecimal("-50.00"), currency = eur),
-                ),
-            )
-        transaction.entries shouldHaveSize 4
     }
 
     @Test
@@ -200,7 +247,7 @@ class TransactionTest {
             buildTransaction(
                 listOf(
                     entry(accountId = sharedAccount, direction = DEBIT, amount = BigDecimal("50.00")),
-                    entry(accountId = sharedAccount, direction = DEBIT, amount = BigDecimal("50.00")), // duplicate pair
+                    entry(accountId = sharedAccount, direction = DEBIT, amount = BigDecimal("50.00")),
                     entry(accountId = counterAccount, direction = CREDIT, amount = BigDecimal("-100.00")),
                 ),
             )
@@ -246,6 +293,7 @@ class TransactionTest {
                         entry(direction = DEBIT, amount = BigDecimal("10.00")),
                         entry(direction = CREDIT, amount = BigDecimal("-10.00")),
                     ),
+                currency = Currency.USD,
             )
         transaction.reference shouldBe ref
     }
@@ -263,6 +311,7 @@ class TransactionTest {
                         entry(direction = DEBIT, amount = BigDecimal("1.00")),
                         entry(direction = CREDIT, amount = BigDecimal("-1.00")),
                     ),
+                currency = Currency.USD,
             )
         transaction.description shouldBe desc
     }
@@ -279,6 +328,7 @@ class TransactionTest {
                         entry(direction = DEBIT, amount = BigDecimal("1.00")),
                         entry(direction = CREDIT, amount = BigDecimal("-1.00")),
                     ),
+                currency = Currency.USD,
             )
         transaction.description shouldBe null
     }
