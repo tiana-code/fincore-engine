@@ -3,8 +3,10 @@
 
 package com.fincore.ledger.domain
 
+import com.fincore.core.Currency
 import com.fincore.core.TransactionId
 import com.fincore.ledger.domain.enum.TransactionStatus
+import com.fincore.ledger.domain.exception.CurrencyConsistencyViolationException
 import com.fincore.ledger.domain.exception.DomainException
 import com.fincore.ledger.domain.exception.DoubleEntryViolationException
 import java.math.BigDecimal
@@ -14,6 +16,7 @@ class Transaction(
     val reference: String,
     val description: String?,
     val entries: List<Entry>,
+    val currency: Currency,
 ) {
     companion object {
         private const val MIN_ENTRIES = 2
@@ -25,6 +28,7 @@ class Transaction(
     init {
         validateEntryCount()
         validateNoDuplicatePairs()
+        validateCurrencyConsistency()
         validateDoubleEntryBalance()
     }
 
@@ -49,22 +53,23 @@ class Transaction(
         }
     }
 
-    private fun validateDoubleEntryBalance() {
-        val netByCurrency =
-            entries
-                .groupBy { it.amount.currency }
-                .mapValues { (_, groupedEntries) ->
-                    groupedEntries.fold(BigDecimal.ZERO) { acc, entry ->
-                        acc.add(entry.amount.amount)
-                    }
-                }
-
-        for ((currency, net) in netByCurrency) {
-            if (net.compareTo(BigDecimal.ZERO) != 0) {
-                throw DoubleEntryViolationException(
-                    "Double-entry balance violated for currency $currency in transaction $id: net=$net",
+    private fun validateCurrencyConsistency() {
+        for (entry in entries) {
+            if (entry.amount.currency != currency) {
+                throw CurrencyConsistencyViolationException(
+                    "Currency mismatch in transaction $id: entry for account ${entry.accountId} " +
+                        "uses ${entry.amount.currency}, expected $currency",
                 )
             }
+        }
+    }
+
+    private fun validateDoubleEntryBalance() {
+        val net = entries.fold(BigDecimal.ZERO) { acc, entry -> acc.add(entry.amount.amount) }
+        if (net.compareTo(BigDecimal.ZERO) != 0) {
+            throw DoubleEntryViolationException(
+                "Double-entry balance violated for currency $currency in transaction $id: net=$net",
+            )
         }
     }
 }
