@@ -277,4 +277,100 @@ class LedgerSchemaMigrationIT {
         (balance.compareTo(BigDecimal.ZERO) == 0) shouldBe true
         (version.compareTo(BigDecimal.ZERO) == 0) shouldBe true
     }
+
+    @Test
+    fun `should create idempotency_keys table with primary key and expires index`() {
+        testDb.boolQuery("SELECT to_regclass('platform.idempotency_keys') IS NOT NULL") shouldBe true
+        testDb.intQuery(
+            "SELECT count(*) FROM pg_constraint " +
+                "WHERE conrelid = 'platform.idempotency_keys'::regclass AND conname = 'pk_idempotency_keys'",
+        ) shouldBe 1
+        testDb.boolQuery("SELECT to_regclass('platform.idx_idempotency_keys_expires') IS NOT NULL") shouldBe true
+    }
+
+    @Test
+    fun `should reject a duplicate idempotency key hash`() {
+        testDb.open().use { connection ->
+            testDb.insertIdempotencyKey(connection, keyHash = REQUEST_HASH)
+            shouldThrow<SQLException> { testDb.insertIdempotencyKey(connection, keyHash = REQUEST_HASH) }
+        }
+    }
+
+    @Test
+    fun `should default created_at and leave optional columns null on minimal idempotency insert`() {
+        testDb.open().use { connection -> testDb.insertIdempotencyKey(connection, keyHash = MINIMAL_KEY_HASH) }
+        testDb.boolQuery(
+            "SELECT created_at IS NOT NULL AND status_code IS NULL AND response_body IS NULL " +
+                "FROM platform.idempotency_keys WHERE key_hash = '$MINIMAL_KEY_HASH'",
+        ) shouldBe true
+    }
+
+    @Test
+    fun `should create outbox_events table with primary key status check and dispatcher indexes`() {
+        testDb.boolQuery("SELECT to_regclass('platform.outbox_events') IS NOT NULL") shouldBe true
+        testDb.intQuery(
+            "SELECT count(*) FROM pg_constraint " +
+                "WHERE conrelid = 'platform.outbox_events'::regclass " +
+                "AND conname IN ('pk_outbox_events','ck_outbox_events_status')",
+        ) shouldBe 2
+        testDb.boolQuery("SELECT to_regclass('platform.idx_outbox_events_pending') IS NOT NULL") shouldBe true
+        testDb.boolQuery("SELECT to_regclass('platform.idx_outbox_events_aggregate') IS NOT NULL") shouldBe true
+        testDb.boolQuery(
+            "SELECT indexdef LIKE '%WHERE%' FROM pg_indexes " +
+                "WHERE schemaname = 'platform' AND indexname = 'idx_outbox_events_pending'",
+        ) shouldBe true
+    }
+
+    @Test
+    fun `should accept every outbox status value defined by the enum`() {
+        testDb.open().use { connection ->
+            OUTBOX_STATUSES.forEach { status ->
+                shouldNotThrowAny { testDb.insertOutboxEvent(connection, aggregateId = "ac5-$status", status = status) }
+            }
+        }
+    }
+
+    @Test
+    fun `should reject an unknown outbox status value`() {
+        testDb.open().use { connection ->
+            shouldThrow<SQLException> { testDb.insertOutboxEvent(connection, aggregateId = "ac6", status = "BOGUS") }
+        }
+    }
+
+    @Test
+    fun `should store the longest outbox status without truncation`() {
+        testDb.open().use { connection ->
+            testDb.insertOutboxEvent(connection, aggregateId = "ac7", status = PERMANENTLY_FAILED_STATUS)
+        }
+        testDb.boolQuery(
+            "SELECT EXISTS(SELECT 1 FROM platform.outbox_events " +
+                "WHERE aggregate_id = 'ac7' AND status = 'PERMANENTLY_FAILED')",
+        ) shouldBe true
+    }
+
+    @Test
+    fun `should generate an outbox id when none is supplied`() {
+        testDb.open().use { connection -> testDb.insertOutboxEventMinimal(connection, aggregateId = "ac8") }
+        testDb.intQuery(
+            "SELECT count(*) FROM platform.outbox_events WHERE aggregate_id = 'ac8' AND id IS NOT NULL",
+        ) shouldBe 1
+    }
+
+    @Test
+    fun `should default outbox status attempts and created_at on minimal insert`() {
+        testDb.open().use { connection -> testDb.insertOutboxEventMinimal(connection, aggregateId = "ac9") }
+        testDb.boolQuery(
+            "SELECT status = 'PENDING' AND attempts = 0 AND created_at IS NOT NULL " +
+                "AND last_error IS NULL AND published_at IS NULL " +
+                "FROM platform.outbox_events WHERE aggregate_id = 'ac9'",
+        ) shouldBe true
+    }
+
+    @Test
+    fun `should not define a version column on outbox_events`() {
+        testDb.intQuery(
+            "SELECT count(*) FROM information_schema.columns " +
+                "WHERE table_schema = 'platform' AND table_name = 'outbox_events' AND column_name = 'version'",
+        ) shouldBe 0
+    }
 }
