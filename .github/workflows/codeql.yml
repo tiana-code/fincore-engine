@@ -27,25 +27,29 @@ jobs:
       security-events: write
       actions: read
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - language: java-kotlin
-            build-mode: none
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
+          languages: java-kotlin
+          build-mode: manual
           queries: security-extended,security-and-quality
+
+      - name: Compile under CodeQL tracer
+        run: |
+          chmod +x gradlew
+          ./gradlew clean assemble -x test --no-daemon --no-build-cache
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: /language:${{ matrix.language }}
+          category: /language:java-kotlin
