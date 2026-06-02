@@ -197,4 +197,84 @@ class LedgerSchemaMigrationIT {
             entryId,
         ) shouldBe "ledger.entries_2026_q3"
     }
+
+    @Test
+    fun `should create account_balances table with primary key foreign key and currency check`() {
+        testDb.boolQuery("SELECT to_regclass('ledger.account_balances') IS NOT NULL") shouldBe true
+        testDb.intQuery(
+            "SELECT count(*) FROM pg_constraint " +
+                "WHERE conrelid = 'ledger.account_balances'::regclass " +
+                "AND conname IN ('pk_account_balances','fk_account_balances_account','ck_account_balances_currency')",
+        ) shouldBe 3
+    }
+
+    @Test
+    fun `should prevent deleting an account referenced by a balance row`() {
+        val accountId = UUID.randomUUID()
+        testDb.open().use { connection ->
+            testDb.insertAccount(connection, accountId)
+            testDb.insertAccountBalance(connection, accountId)
+            shouldThrow<SQLException> {
+                connection.prepareStatement("DELETE FROM ledger.accounts WHERE id = ?").use { statement ->
+                    statement.setObject(1, accountId)
+                    statement.executeUpdate()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `should reject a balance row with an invalid currency`() {
+        val accountId = UUID.randomUUID()
+        testDb.open().use { connection ->
+            testDb.insertAccount(connection, accountId)
+            shouldThrow<SQLException> { testDb.insertAccountBalance(connection, accountId, currency = "usd") }
+        }
+    }
+
+    @Test
+    fun `should reject a duplicate balance row for the same account and currency`() {
+        val accountId = UUID.randomUUID()
+        testDb.open().use { connection ->
+            testDb.insertAccount(connection, accountId)
+            testDb.insertAccountBalance(connection, accountId)
+            shouldThrow<SQLException> { testDb.insertAccountBalance(connection, accountId) }
+        }
+    }
+
+    @Test
+    fun `should store and read back 18 digit balance precision`() {
+        val accountId = UUID.randomUUID()
+        testDb.open().use { connection ->
+            testDb.insertAccount(connection, accountId)
+            testDb.insertAccountBalance(connection, accountId, balance = PRECISE)
+        }
+        val stored =
+            testDb.bigDecimalById(
+                "SELECT balance FROM ledger.account_balances WHERE account_id = ?",
+                accountId,
+            )
+        (stored.compareTo(BigDecimal(PRECISE)) == 0) shouldBe true
+    }
+
+    @Test
+    fun `should default balance and version to zero when only required columns are supplied`() {
+        val accountId = UUID.randomUUID()
+        testDb.open().use { connection ->
+            testDb.insertAccount(connection, accountId)
+            testDb.insertAccountBalanceMinimal(connection, accountId)
+        }
+        val balance =
+            testDb.bigDecimalById(
+                "SELECT balance FROM ledger.account_balances WHERE account_id = ?",
+                accountId,
+            )
+        val version =
+            testDb.bigDecimalById(
+                "SELECT version::numeric FROM ledger.account_balances WHERE account_id = ?",
+                accountId,
+            )
+        (balance.compareTo(BigDecimal.ZERO) == 0) shouldBe true
+        (version.compareTo(BigDecimal.ZERO) == 0) shouldBe true
+    }
 }
