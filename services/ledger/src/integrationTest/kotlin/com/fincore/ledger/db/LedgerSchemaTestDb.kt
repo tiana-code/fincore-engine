@@ -147,6 +147,43 @@ internal class LedgerSchemaTestDb(
         statement.setString(base + 7, CREATED_Q2)
     }
 
+    fun insertAccountBalance(
+        connection: Connection,
+        accountId: UUID,
+        currency: String = CCY,
+        balance: String = ZERO,
+        lastPostedAt: String = CREATED_Q2,
+    ) {
+        connection
+            .prepareStatement(
+                "INSERT INTO ledger.account_balances(account_id,currency,balance,last_posted_at) " +
+                    "VALUES (?,?,?::numeric,?::timestamptz)",
+            ).use { statement ->
+                statement.setObject(1, accountId)
+                statement.setString(2, currency)
+                statement.setString(3, balance)
+                statement.setString(4, lastPostedAt)
+                statement.executeUpdate()
+            }
+    }
+
+    fun insertAccountBalanceMinimal(
+        connection: Connection,
+        accountId: UUID,
+        currency: String = CCY,
+        lastPostedAt: String = CREATED_Q2,
+    ) {
+        connection
+            .prepareStatement(
+                "INSERT INTO ledger.account_balances(account_id,currency,last_posted_at) VALUES (?,?,?::timestamptz)",
+            ).use { statement ->
+                statement.setObject(1, accountId)
+                statement.setString(2, currency)
+                statement.setString(3, lastPostedAt)
+                statement.executeUpdate()
+            }
+    }
+
     fun entryCount(txId: UUID): Int =
         open().use { connection ->
             connection.prepareStatement("SELECT count(*) FROM ledger.entries WHERE transaction_id = ?").use { statement ->
