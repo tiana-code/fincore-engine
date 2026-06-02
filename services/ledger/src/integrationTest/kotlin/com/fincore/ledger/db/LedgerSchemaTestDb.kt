@@ -11,6 +11,7 @@ import liquibase.database.jvm.JdbcConnection
 import liquibase.resource.ClassLoaderResourceAccessor
 import org.testcontainers.containers.PostgreSQLContainer
 import java.math.BigDecimal
+import java.security.MessageDigest
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.PreparedStatement
@@ -32,6 +33,23 @@ internal const val PRECISE = "100.123456789012345678"
 internal const val NEG_PRECISE = "-100.123456789012345678"
 internal const val CREATED_Q2 = "2026-06-01T12:00:00Z"
 internal const val CREATED_Q3 = "2026-08-15T12:00:00Z"
+
+private fun sha256Hex(value: String): String =
+    MessageDigest
+        .getInstance("SHA-256")
+        .digest(value.toByteArray())
+        .joinToString("") { byte -> "%02x".format(byte) }
+
+internal val KEY_HASH = sha256Hex("fincore-idempotency-key")
+internal val REQUEST_HASH = sha256Hex("fincore-request-body")
+internal val MINIMAL_KEY_HASH = sha256Hex("fincore-minimal-key")
+internal const val EXPIRES_AT = "2026-06-02T12:00:00Z"
+internal const val AGGREGATE_TYPE = "Account"
+internal const val EVENT_TYPE = "AccountOpened"
+internal const val EMPTY_JSON = "{}"
+internal const val PENDING_STATUS = "PENDING"
+internal const val PERMANENTLY_FAILED_STATUS = "PERMANENTLY_FAILED"
+internal val OUTBOX_STATUSES = listOf("PENDING", "PUBLISHING", "PUBLISHED", "FAILED", "PERMANENTLY_FAILED")
 
 @Suppress("MagicNumber") // positional JDBC parameter indices
 internal class LedgerSchemaTestDb(
@@ -180,6 +198,60 @@ internal class LedgerSchemaTestDb(
                 statement.setObject(1, accountId)
                 statement.setString(2, currency)
                 statement.setString(3, lastPostedAt)
+                statement.executeUpdate()
+            }
+    }
+
+    fun insertIdempotencyKey(
+        connection: Connection,
+        keyHash: String = KEY_HASH,
+        requestHash: String = REQUEST_HASH,
+        expiresAt: String = EXPIRES_AT,
+    ) {
+        connection
+            .prepareStatement(
+                "INSERT INTO platform.idempotency_keys(key_hash,request_hash,expires_at) " +
+                    "VALUES (?,?,?::timestamptz)",
+            ).use { statement ->
+                statement.setString(1, keyHash)
+                statement.setString(2, requestHash)
+                statement.setString(3, expiresAt)
+                statement.executeUpdate()
+            }
+    }
+
+    fun insertOutboxEvent(
+        connection: Connection,
+        aggregateId: String,
+        status: String = PENDING_STATUS,
+    ) {
+        connection
+            .prepareStatement(
+                "INSERT INTO platform.outbox_events(aggregate_type,aggregate_id,event_type,payload,status) " +
+                    "VALUES (?,?,?,?::jsonb,?)",
+            ).use { statement ->
+                statement.setString(1, AGGREGATE_TYPE)
+                statement.setString(2, aggregateId)
+                statement.setString(3, EVENT_TYPE)
+                statement.setString(4, EMPTY_JSON)
+                statement.setString(5, status)
+                statement.executeUpdate()
+            }
+    }
+
+    fun insertOutboxEventMinimal(
+        connection: Connection,
+        aggregateId: String,
+    ) {
+        connection
+            .prepareStatement(
+                "INSERT INTO platform.outbox_events(aggregate_type,aggregate_id,event_type,payload) " +
+                    "VALUES (?,?,?,?::jsonb)",
+            ).use { statement ->
+                statement.setString(1, AGGREGATE_TYPE)
+                statement.setString(2, aggregateId)
+                statement.setString(3, EVENT_TYPE)
+                statement.setString(4, EMPTY_JSON)
                 statement.executeUpdate()
             }
     }
