@@ -50,6 +50,13 @@ internal const val EMPTY_JSON = "{}"
 internal const val PENDING_STATUS = "PENDING"
 internal const val PERMANENTLY_FAILED_STATUS = "PERMANENTLY_FAILED"
 internal val OUTBOX_STATUSES = listOf("PENDING", "PUBLISHING", "PUBLISHED", "FAILED", "PERMANENTLY_FAILED")
+internal const val AUDIT_ACTOR = "auth0|fincore-operator"
+internal const val AUDIT_CORRELATION = "corr-0001"
+internal const val AUDIT_ACTION = "TRANSACTION_POST"
+internal const val AUDIT_RESOURCE_TYPE = "TRANSACTION"
+internal const val AUDIT_RESOURCE_ID = "tx_01HZX9N7Q2"
+internal val AUDIT_RESULTS = listOf("SUCCESS", "FAILURE", "DENIED")
+internal val AUDIT_REQUEST_HASH = sha256Hex("fincore-audit-request-body")
 
 @Suppress("MagicNumber") // positional JDBC parameter indices
 internal class LedgerSchemaTestDb(
@@ -252,6 +259,49 @@ internal class LedgerSchemaTestDb(
                 statement.setString(2, aggregateId)
                 statement.setString(3, EVENT_TYPE)
                 statement.setString(4, EMPTY_JSON)
+                statement.executeUpdate()
+            }
+    }
+
+    fun insertAuditEvent(
+        connection: Connection,
+        result: String,
+        resourceId: String = AUDIT_RESOURCE_ID,
+        requestHash: String = AUDIT_REQUEST_HASH,
+    ) {
+        connection
+            .prepareStatement(
+                "INSERT INTO platform.audit_events" +
+                    "(actor_id,correlation_id,action,resource_type,resource_id,result,request_hash) " +
+                    "VALUES (?,?,?,?,?,?,?)",
+            ).use { statement ->
+                statement.setString(1, AUDIT_ACTOR)
+                statement.setString(2, AUDIT_CORRELATION)
+                statement.setString(3, AUDIT_ACTION)
+                statement.setString(4, AUDIT_RESOURCE_TYPE)
+                statement.setString(5, resourceId)
+                statement.setString(6, result)
+                statement.setString(7, requestHash)
+                statement.executeUpdate()
+            }
+    }
+
+    fun insertAuditEventMinimal(
+        connection: Connection,
+        resourceId: String,
+    ) {
+        connection
+            .prepareStatement(
+                "INSERT INTO platform.audit_events" +
+                    "(actor_id,correlation_id,action,resource_type,resource_id,result) " +
+                    "VALUES (?,?,?,?,?,?)",
+            ).use { statement ->
+                statement.setString(1, AUDIT_ACTOR)
+                statement.setString(2, AUDIT_CORRELATION)
+                statement.setString(3, AUDIT_ACTION)
+                statement.setString(4, AUDIT_RESOURCE_TYPE)
+                statement.setString(5, resourceId)
+                statement.setString(6, AUDIT_RESULTS.first())
                 statement.executeUpdate()
             }
     }

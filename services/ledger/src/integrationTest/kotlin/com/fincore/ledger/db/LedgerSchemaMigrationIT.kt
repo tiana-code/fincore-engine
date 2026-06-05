@@ -373,4 +373,100 @@ class LedgerSchemaMigrationIT {
                 "WHERE table_schema = 'platform' AND table_name = 'outbox_events' AND column_name = 'version'",
         ) shouldBe 0
     }
+
+    @Test
+    fun `should create audit_events table with expected columns widths nullability primary key and result check`() {
+        testDb.boolQuery("SELECT to_regclass('platform.audit_events') IS NOT NULL") shouldBe true
+        testDb.intQuery(
+            "SELECT count(*) FROM information_schema.columns " +
+                "WHERE table_schema = 'platform' AND table_name = 'audit_events' " +
+                "AND column_name IN " +
+                "('id','actor_id','correlation_id','action','resource_type','resource_id','result','request_hash','created_at')",
+        ) shouldBe 9
+        testDb.boolQuery(
+            "SELECT character_maximum_length = 16 FROM information_schema.columns " +
+                "WHERE table_schema = 'platform' AND table_name = 'audit_events' AND column_name = 'result'",
+        ) shouldBe true
+        testDb.boolQuery(
+            "SELECT character_maximum_length = 32 FROM information_schema.columns " +
+                "WHERE table_schema = 'platform' AND table_name = 'audit_events' AND column_name = 'resource_type'",
+        ) shouldBe true
+        testDb.boolQuery(
+            "SELECT character_maximum_length = 64 FROM information_schema.columns " +
+                "WHERE table_schema = 'platform' AND table_name = 'audit_events' AND column_name = 'actor_id'",
+        ) shouldBe true
+        testDb.boolQuery(
+            "SELECT is_nullable = 'YES' FROM information_schema.columns " +
+                "WHERE table_schema = 'platform' AND table_name = 'audit_events' AND column_name = 'request_hash'",
+        ) shouldBe true
+        testDb.intQuery(
+            "SELECT count(*) FROM information_schema.columns " +
+                "WHERE table_schema = 'platform' AND table_name = 'audit_events' " +
+                "AND is_nullable = 'NO' AND column_name <> 'id'",
+        ) shouldBe 7
+        testDb.intQuery(
+            "SELECT count(*) FROM pg_constraint " +
+                "WHERE conrelid = 'platform.audit_events'::regclass " +
+                "AND conname IN ('pk_audit_events','ck_audit_events_result')",
+        ) shouldBe 2
+    }
+
+    @Test
+    fun `should accept every audit result value defined by the check`() {
+        testDb.open().use { connection ->
+            AUDIT_RESULTS.forEach { result ->
+                shouldNotThrowAny { testDb.insertAuditEvent(connection, result = result, resourceId = "tx_ac2_$result") }
+            }
+        }
+    }
+
+    @Test
+    fun `should reject an unknown audit result value`() {
+        testDb.open().use { connection ->
+            shouldThrow<SQLException> { testDb.insertAuditEvent(connection, result = "UNKNOWN", resourceId = "tx_ac3") }
+        }
+    }
+
+    @Test
+    fun `should generate an audit id when none is supplied`() {
+        testDb.open().use { connection -> testDb.insertAuditEventMinimal(connection, resourceId = "tx_ac4") }
+        testDb.intQuery(
+            "SELECT count(*) FROM platform.audit_events WHERE resource_id = 'tx_ac4' AND id IS NOT NULL",
+        ) shouldBe 1
+    }
+
+    @Test
+    fun `should default created_at and leave request_hash null on minimal audit insert`() {
+        testDb.open().use { connection -> testDb.insertAuditEventMinimal(connection, resourceId = "tx_ac5") }
+        testDb.boolQuery(
+            "SELECT created_at IS NOT NULL AND request_hash IS NULL " +
+                "FROM platform.audit_events WHERE resource_id = 'tx_ac5'",
+        ) shouldBe true
+    }
+
+    @Test
+    fun `should create the resource history index on audit_events`() {
+        testDb.boolQuery("SELECT to_regclass('platform.idx_audit_events_resource') IS NOT NULL") shouldBe true
+        testDb.boolQuery(
+            "SELECT indexdef LIKE '%resource_type%resource_id%created_at%' FROM pg_indexes " +
+                "WHERE schemaname = 'platform' AND indexname = 'idx_audit_events_resource'",
+        ) shouldBe true
+    }
+
+    @Test
+    fun `should create the actor index on audit_events`() {
+        testDb.boolQuery("SELECT to_regclass('platform.idx_audit_events_actor') IS NOT NULL") shouldBe true
+        testDb.boolQuery(
+            "SELECT indexdef LIKE '%actor_id%' FROM pg_indexes " +
+                "WHERE schemaname = 'platform' AND indexname = 'idx_audit_events_actor'",
+        ) shouldBe true
+    }
+
+    @Test
+    fun `should not define a version column on audit_events`() {
+        testDb.intQuery(
+            "SELECT count(*) FROM information_schema.columns " +
+                "WHERE table_schema = 'platform' AND table_name = 'audit_events' AND column_name = 'version'",
+        ) shouldBe 0
+    }
 }
