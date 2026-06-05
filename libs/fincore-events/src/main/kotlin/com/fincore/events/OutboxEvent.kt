@@ -17,5 +17,4 @@ data class OutboxEvent(
     val publishedAt: Instant?,
     val attempts: Int,
     val lastError: String?,
-    val version: Long,
 )
