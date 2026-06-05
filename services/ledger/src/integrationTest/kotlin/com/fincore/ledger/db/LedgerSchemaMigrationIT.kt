@@ -469,4 +469,32 @@ class LedgerSchemaMigrationIT {
                 "WHERE table_schema = 'platform' AND table_name = 'audit_events' AND column_name = 'version'",
         ) shouldBe 0
     }
+
+    @Test
+    fun `should reject an update on audit_events`() {
+        testDb.open().use { connection ->
+            testDb.insertAuditEvent(connection, result = "SUCCESS", resourceId = "tx_immutable_upd")
+            shouldThrow<SQLException> {
+                connection.createStatement().use { statement ->
+                    statement.executeUpdate(
+                        "UPDATE platform.audit_events SET result = 'DENIED' WHERE resource_id = 'tx_immutable_upd'",
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `should reject a delete on audit_events`() {
+        testDb.open().use { connection ->
+            testDb.insertAuditEvent(connection, result = "SUCCESS", resourceId = "tx_immutable_del")
+            shouldThrow<SQLException> {
+                connection.createStatement().use { statement ->
+                    statement.executeUpdate(
+                        "DELETE FROM platform.audit_events WHERE resource_id = 'tx_immutable_del'",
+                    )
+                }
+            }
+        }
+    }
 }

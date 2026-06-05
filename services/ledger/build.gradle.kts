@@ -7,8 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.jpa)
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
-    // MapStruct mappers (S4) use kapt, not KSP - MapStruct has no KSP processor.
-    // The kapt plugin + kapt(mapstruct-processor) get added when mappers land.
+    alias(libs.plugins.kotlin.kapt)
 }
 
 description = "FinCore Ledger service: double-entry accounts, transactions, balances"
@@ -32,6 +31,9 @@ dependencies {
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.spring.boot.starter.validation)
     implementation(libs.springdoc.openapi.starter)
+
+    implementation(libs.mapstruct.core)
+    kapt(libs.mapstruct.processor)
 
     implementation(libs.liquibase.core)
     runtimeOnly(libs.postgres.jdbc)
