@@ -5,7 +5,8 @@ package com.fincore.ledger.domain.exception
 
 open class DomainException(
     message: String,
-) : RuntimeException(message) {
+    cause: Throwable? = null,
+) : RuntimeException(message, cause) {
     init {
         require(message.isNotBlank()) { "DomainException message must not be blank" }
     }
