@@ -6,4 +6,6 @@ package com.fincore.ledger.infrastructure.persistence
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
-interface TransactionRepository : JpaRepository<TransactionEntity, UUID>
+interface TransactionRepository : JpaRepository<TransactionEntity, UUID> {
+    fun existsByReference(reference: String): Boolean
+}
