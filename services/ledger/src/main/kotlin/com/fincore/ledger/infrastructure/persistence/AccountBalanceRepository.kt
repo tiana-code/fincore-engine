@@ -4,5 +4,8 @@
 package com.fincore.ledger.infrastructure.persistence
 
 import org.springframework.data.jpa.repository.JpaRepository
+import java.util.UUID
 
-interface AccountBalanceRepository : JpaRepository<AccountBalanceEntity, AccountBalanceKey>
+interface AccountBalanceRepository : JpaRepository<AccountBalanceEntity, AccountBalanceKey> {
+    fun findByKeyAccountId(accountId: UUID): List<AccountBalanceEntity>
+}
