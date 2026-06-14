@@ -29,3 +29,10 @@ export interface PageResponse<T> {
     totalElements: number
     totalPages: number
 }
+
+export interface BalanceResponse {
+    accountId: string
+    currency: string
+    amount: string
+    lastPostedAt: string | null
+}

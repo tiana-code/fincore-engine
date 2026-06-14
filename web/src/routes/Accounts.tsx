@@ -2,8 +2,8 @@
 // SPDX-FileCopyrightText: 2026 FinCore Engine Authors
 
 import { useState } from 'react'
-import { Icon } from '@/components/Icon'
 import { Shell } from '@/components/Shell'
+import { StateMessage } from '@/components/StateMessage'
 import { AccountsTable } from '@/features/accounts/AccountsTable'
 import { Pagination } from '@/features/accounts/Pagination'
 import { useAccounts } from '@/features/accounts/useAccounts'
@@ -63,34 +63,5 @@ export function Accounts() {
                 </div>
             </div>
         </Shell>
-    )
-}
-
-function StateMessage({
-    icon,
-    text,
-    children,
-}: {
-    icon: 'activity' | 'alert' | 'inbox'
-    text: string
-    children?: React.ReactNode
-}) {
-    return (
-        <div
-            style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 10,
-                padding: '64px 24px',
-                color: 'var(--text-3)',
-                fontSize: 13,
-            }}
-        >
-            <Icon name={icon} size={20} />
-            <span>{text}</span>
-            {children}
-        </div>
     )
 }
