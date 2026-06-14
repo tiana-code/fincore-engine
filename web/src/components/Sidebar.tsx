@@ -13,7 +13,7 @@ interface NavItem {
 const NAV: NavItem[] = [
     { name: 'Overview', icon: 'home', path: '/' },
     { name: 'Accounts', icon: 'wallet', path: '/accounts' },
-    { name: 'Transactions', icon: 'arrows' },
+    { name: 'Transactions', icon: 'arrows', path: '/transactions' },
     { name: 'Payments', icon: 'send' },
     { name: 'Decisions', icon: 'scale' },
     { name: 'Compliance', icon: 'shield' },

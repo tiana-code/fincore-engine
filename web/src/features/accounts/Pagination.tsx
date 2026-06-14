@@ -9,9 +9,17 @@ interface PaginationProps {
     totalElements: number
     onPrev: () => void
     onNext: () => void
+    noun?: string
 }
 
-export function Pagination({ page, totalPages, totalElements, onPrev, onNext }: PaginationProps) {
+export function Pagination({
+    page,
+    totalPages,
+    totalElements,
+    onPrev,
+    onNext,
+    noun = 'accounts',
+}: PaginationProps) {
     const prevDisabled = page <= 0
     const nextDisabled = totalPages === 0 || page >= totalPages - 1
     return (
@@ -30,7 +38,7 @@ export function Pagination({ page, totalPages, totalElements, onPrev, onNext }: 
                 <span className="mono" style={{ color: 'var(--text)' }}>
                     {totalElements}
                 </span>{' '}
-                accounts
+                {noun}
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <button
