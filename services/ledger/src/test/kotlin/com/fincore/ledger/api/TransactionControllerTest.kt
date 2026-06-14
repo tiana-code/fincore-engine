@@ -10,9 +10,12 @@ import com.fincore.ledger.api.idempotency.IdempotencyFilter
 import com.fincore.ledger.api.mapper.LedgerApiMapper
 import com.fincore.ledger.application.PostTransactionCommand
 import com.fincore.ledger.application.PostedTransaction
+import com.fincore.ledger.application.TransactionPage
 import com.fincore.ledger.application.TransactionService
+import com.fincore.ledger.application.TransactionSummary
 import com.fincore.ledger.config.SecurityConfig
 import com.fincore.ledger.domain.enum.EntryDirection
+import com.fincore.ledger.domain.enum.TransactionStatus
 import com.fincore.ledger.domain.exception.AccountNotFoundException
 import com.fincore.ledger.domain.exception.ConcurrencyConflictException
 import com.fincore.ledger.domain.exception.CurrencyConsistencyViolationException
@@ -23,6 +26,8 @@ import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
+import org.hamcrest.Matchers.matchesPattern
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -34,8 +39,10 @@ import org.springframework.http.MediaType
 import org.springframework.security.oauth2.jwt.JwtDecoder
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.math.BigDecimal
 import java.time.Instant
@@ -87,10 +94,11 @@ class TransactionControllerTest(
     fun `should post a balanced transaction and pass through signed amounts and actor`() {
         val commandSlot = slot<PostTransactionCommand>()
         every { transactionService.post(capture(commandSlot)) } returns
-            PostedTransaction(TransactionId.generate(), "tx-ref-1", Instant.parse("2026-06-13T10:00:00Z"))
+            PostedTransaction(TransactionId.generate(), "tx-ref-1", TransactionStatus.POSTED, Instant.parse("2026-06-13T10:00:00Z"))
 
         postBalanced(correlationId = "corr-1")
             .andExpect(status().isCreated)
+            .andExpect(jsonPath("$.status").value("POSTED"))
             .andExpect(header().string("Location", org.hamcrest.Matchers.startsWith("/v1/transactions/tx_")))
 
         val command = commandSlot.captured
@@ -145,5 +153,75 @@ class TransactionControllerTest(
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"reference":"r","currency":"EUR","entries":[{"accountId":"$accountA","direction":"DEBIT","amount":1}]}"""),
             ).andExpect(status().isBadRequest)
+    }
+
+    private fun summary(
+        reference: String,
+        status: TransactionStatus,
+    ) = TransactionSummary(TransactionId.generate(), reference, status, Instant.parse("2026-06-13T10:00:00Z"))
+
+    @Test
+    fun `should list transactions as a page with prefixed ids and status`() {
+        every { transactionService.list(0, 20) } returns
+            TransactionPage(
+                items = listOf(summary("tx-ref-2", TransactionStatus.POSTED), summary("tx-ref-1", TransactionStatus.REVERSED)),
+                page = 0,
+                size = 20,
+                totalElements = 2,
+                totalPages = 1,
+            )
+
+        mockMvc
+            .perform(get("/v1/transactions?page=0&size=20").with(jwt()))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.items[0].id").value(matchesPattern("^tx_[0-9A-HJKMNP-TV-Z]{26}$")))
+            .andExpect(jsonPath("$.items[0].status").value("POSTED"))
+            .andExpect(jsonPath("$.items[1].status").value("REVERSED"))
+            .andExpect(jsonPath("$.page").value(0))
+            .andExpect(jsonPath("$.totalElements").value(2))
+    }
+
+    @Test
+    fun `should return an empty page when no transactions exist`() {
+        every { transactionService.list(0, 20) } returns TransactionPage(emptyList(), 0, 20, 0, 0)
+
+        mockMvc
+            .perform(get("/v1/transactions").with(jwt()))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.items").isEmpty)
+            .andExpect(jsonPath("$.totalElements").value(0))
+            .andExpect(jsonPath("$.totalPages").value(0))
+    }
+
+    @Test
+    fun `should reject an oversized page request with 400`() {
+        mockMvc
+            .perform(get("/v1/transactions?size=101").with(jwt()))
+            .andExpect(status().isBadRequest)
+
+        verify(exactly = 0) { transactionService.list(any(), any()) }
+    }
+
+    @Test
+    fun `should reject a zero page size with 400`() {
+        mockMvc
+            .perform(get("/v1/transactions?size=0").with(jwt()))
+            .andExpect(status().isBadRequest)
+
+        verify(exactly = 0) { transactionService.list(any(), any()) }
+    }
+
+    @Test
+    fun `should reject a negative page index with 400`() {
+        mockMvc
+            .perform(get("/v1/transactions?page=-1").with(jwt()))
+            .andExpect(status().isBadRequest)
+
+        verify(exactly = 0) { transactionService.list(any(), any()) }
+    }
+
+    @Test
+    fun `should reject an unauthenticated list request with 401`() {
+        mockMvc.perform(get("/v1/transactions")).andExpect(status().isUnauthorized)
     }
 }

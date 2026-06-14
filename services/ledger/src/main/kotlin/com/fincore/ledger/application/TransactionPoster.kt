@@ -54,7 +54,7 @@ class TransactionPoster(
         persist(transaction, command, postedAt)
         applyBalances(transaction, command, postedAt)
         emit(transaction, command, postedAt)
-        return PostedTransaction(transaction.id, transaction.reference, postedAt)
+        return PostedTransaction(transaction.id, transaction.reference, transaction.status, postedAt)
     }
 
     private fun buildDomain(command: PostTransactionCommand): Transaction {
