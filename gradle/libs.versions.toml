@@ -36,6 +36,7 @@ spring-boot-starter-oauth2-resource-server = { module = "org.springframework.boo
 spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation", version.ref = "spring-boot" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
+spring-security-test = { module = "org.springframework.security:spring-security-test" }
 
 # Hibernate
 hibernate-core = { module = "org.hibernate.orm:hibernate-core", version.ref = "hibernate" }
