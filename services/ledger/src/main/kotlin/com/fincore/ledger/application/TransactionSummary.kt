@@ -7,7 +7,7 @@ import com.fincore.core.TransactionId
 import com.fincore.ledger.domain.enum.TransactionStatus
 import java.time.Instant
 
-data class PostedTransaction(
+data class TransactionSummary(
     val id: TransactionId,
     val reference: String,
     val status: TransactionStatus,

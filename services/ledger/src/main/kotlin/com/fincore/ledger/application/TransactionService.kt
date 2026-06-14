@@ -5,4 +5,9 @@ package com.fincore.ledger.application
 
 interface TransactionService {
     fun post(command: PostTransactionCommand): PostedTransaction
+
+    fun list(
+        page: Int,
+        size: Int,
+    ): TransactionPage
 }

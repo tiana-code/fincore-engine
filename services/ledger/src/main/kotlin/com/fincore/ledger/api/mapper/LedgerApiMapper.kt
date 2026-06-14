@@ -17,6 +17,8 @@ import com.fincore.ledger.application.CreateAccountCommand
 import com.fincore.ledger.application.EntryLine
 import com.fincore.ledger.application.PostTransactionCommand
 import com.fincore.ledger.application.PostedTransaction
+import com.fincore.ledger.application.TransactionPage
+import com.fincore.ledger.application.TransactionSummary
 import com.fincore.ledger.domain.Account
 import org.springframework.stereotype.Component
 
@@ -86,6 +88,24 @@ class LedgerApiMapper {
         TransactionResponse(
             id = posted.id.toString(),
             reference = posted.reference,
+            status = posted.status,
             postedAt = posted.postedAt,
+        )
+
+    fun toResponse(summary: TransactionSummary): TransactionResponse =
+        TransactionResponse(
+            id = summary.id.toString(),
+            reference = summary.reference,
+            status = summary.status,
+            postedAt = summary.postedAt,
+        )
+
+    fun toPageResponse(page: TransactionPage): PageResponse<TransactionResponse> =
+        PageResponse(
+            items = page.items.map { toResponse(it) },
+            page = page.page,
+            size = page.size,
+            totalElements = page.totalElements,
+            totalPages = page.totalPages,
         )
 }

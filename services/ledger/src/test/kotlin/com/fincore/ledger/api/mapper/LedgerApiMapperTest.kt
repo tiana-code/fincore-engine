@@ -16,6 +16,7 @@ import com.fincore.ledger.domain.Account
 import com.fincore.ledger.domain.enum.AccountStatus
 import com.fincore.ledger.domain.enum.AccountType
 import com.fincore.ledger.domain.enum.EntryDirection
+import com.fincore.ledger.domain.enum.TransactionStatus
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldStartWith
 import org.junit.jupiter.api.Test
@@ -86,7 +87,7 @@ class LedgerApiMapperTest {
 
     @Test
     fun `should serialize transaction id as prefixed ulid`() {
-        val posted = PostedTransaction(TransactionId.generate(), "ref-1", java.time.Instant.now())
+        val posted = PostedTransaction(TransactionId.generate(), "ref-1", TransactionStatus.POSTED, java.time.Instant.now())
         mapper.toResponse(posted).id shouldStartWith "tx_"
     }
 }
