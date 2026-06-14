@@ -43,6 +43,7 @@ dependencies {
 
     testImplementation(project(":libs:fincore-test-support"))
     testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.spring.security.test)
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.kotest.property)
     testImplementation(libs.kotest.runner.junit5)
