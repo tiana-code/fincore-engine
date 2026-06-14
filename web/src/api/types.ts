@@ -30,6 +30,15 @@ export interface PageResponse<T> {
     totalPages: number
 }
 
+export type TransactionStatus = 'POSTED' | 'REVERSED'
+
+export interface TransactionResponse {
+    id: string
+    reference: string
+    status: TransactionStatus
+    postedAt: string
+}
+
 export interface BalanceResponse {
     accountId: string
     currency: string

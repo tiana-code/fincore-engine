@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/ThemeProvider'
 import { AccountDetail } from '@/routes/AccountDetail'
 import { Accounts } from '@/routes/Accounts'
 import { Overview } from '@/routes/Overview'
+import { Transactions } from '@/routes/Transactions'
 
 const queryClient = new QueryClient()
 
@@ -19,6 +20,7 @@ export function App() {
                         <Route path="/" element={<Overview />} />
                         <Route path="/accounts" element={<Accounts />} />
                         <Route path="/accounts/:id" element={<AccountDetail />} />
+                        <Route path="/transactions" element={<Transactions />} />
                     </Routes>
                 </BrowserRouter>
             </ThemeProvider>
