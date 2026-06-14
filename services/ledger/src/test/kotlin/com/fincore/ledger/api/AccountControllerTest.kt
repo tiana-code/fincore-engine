@@ -131,7 +131,7 @@ class AccountControllerTest(
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.accountId").value(id.toString()))
             .andExpect(jsonPath("$.currency").value("EUR"))
-            .andExpect(jsonPath("$.amount").value(100.00))
+            .andExpect(jsonPath("$.amount").value("100.00"))
     }
 
     @Test
