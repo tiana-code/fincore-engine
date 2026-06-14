@@ -12,6 +12,11 @@ interface AccountService {
 
     fun get(id: AccountId): Account
 
+    fun list(
+        page: Int,
+        size: Int,
+    ): AccountPage
+
     fun rename(
         id: AccountId,
         newName: String,

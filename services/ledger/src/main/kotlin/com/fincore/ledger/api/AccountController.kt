@@ -9,6 +9,7 @@ import com.fincore.core.IdempotencyKey
 import com.fincore.ledger.api.dto.request.CreateAccountRequest
 import com.fincore.ledger.api.dto.response.AccountResponse
 import com.fincore.ledger.api.dto.response.BalanceResponse
+import com.fincore.ledger.api.dto.response.PageResponse
 import com.fincore.ledger.api.idempotency.IdempotencyAttributes
 import com.fincore.ledger.api.mapper.LedgerApiMapper
 import com.fincore.ledger.application.AccountService
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestAttribute
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.net.URI
 
@@ -57,6 +59,16 @@ class AccountController(
         return respond(result, location)
     }
 
+    @GetMapping
+    fun list(
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "20") size: Int,
+    ): PageResponse<AccountResponse> {
+        require(page >= 0) { "page must be >= 0" }
+        require(size in 1..MAX_PAGE_SIZE) { "size must be 1..$MAX_PAGE_SIZE" }
+        return mapper.toPageResponse(accountService.list(page, size))
+    }
+
     @GetMapping("/{id}")
     fun get(
         @PathVariable id: String,
@@ -80,5 +92,9 @@ class AccountController(
         val builder = ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON)
         if (!result.replayed) location?.let { builder.location(it) }
         return builder.body(body)
+    }
+
+    private companion object {
+        const val MAX_PAGE_SIZE = 100
     }
 }
