@@ -10,6 +10,7 @@ import com.fincore.ledger.api.idempotency.IdempotencyAttributes
 import com.fincore.ledger.api.idempotency.IdempotencyFilter
 import com.fincore.ledger.api.mapper.LedgerApiMapper
 import com.fincore.ledger.application.AccountBalance
+import com.fincore.ledger.application.AccountPage
 import com.fincore.ledger.application.AccountService
 import com.fincore.ledger.application.BalanceService
 import com.fincore.ledger.application.CreateAccountCommand
@@ -194,5 +195,49 @@ class AccountControllerTest(
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"name":"Operating cash","type":"USER_WALLET","currency":"euro"}"""),
             ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `should list accounts as a page`() {
+        every { accountService.list(0, 20) } returns
+            AccountPage(
+                items =
+                    listOf(
+                        Account(AccountId.generate(), "Cash", AccountType.ASSET, Currency.EUR),
+                        Account(AccountId.generate(), "Wallet", AccountType.USER_WALLET, Currency.USD),
+                    ),
+                page = 0,
+                size = 20,
+                totalElements = 2,
+                totalPages = 1,
+            )
+
+        mockMvc
+            .perform(get("/v1/accounts?page=0&size=20").with(jwt()))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.items[0].id").value(matchesPattern("^acc_[0-9A-HJKMNP-TV-Z]{26}$")))
+            .andExpect(jsonPath("$.page").value(0))
+            .andExpect(jsonPath("$.totalElements").value(2))
+    }
+
+    @Test
+    fun `should reject an oversized page request with 400`() {
+        mockMvc
+            .perform(get("/v1/accounts?size=101").with(jwt()))
+            .andExpect(status().isBadRequest)
+
+        verify(exactly = 0) { accountService.list(any(), any()) }
+    }
+
+    @Test
+    fun `should reject a negative page index with 400`() {
+        mockMvc
+            .perform(get("/v1/accounts?page=-1").with(jwt()))
+            .andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `should reject an unauthenticated list request with 401`() {
+        mockMvc.perform(get("/v1/accounts")).andExpect(status().isUnauthorized)
     }
 }

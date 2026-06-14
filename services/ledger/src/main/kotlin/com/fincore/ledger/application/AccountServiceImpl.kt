@@ -12,6 +12,8 @@ import com.fincore.ledger.infrastructure.persistence.AccountBalanceRepository
 import com.fincore.ledger.infrastructure.persistence.AccountEntity
 import com.fincore.ledger.infrastructure.persistence.AccountPersistenceAdapter
 import com.fincore.ledger.infrastructure.persistence.AccountRepository
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -32,6 +34,22 @@ class AccountServiceImpl(
 
     @Transactional(readOnly = true)
     override fun get(id: AccountId): Account = adapter.toDomain(load(id))
+
+    @Transactional(readOnly = true)
+    override fun list(
+        page: Int,
+        size: Int,
+    ): AccountPage {
+        val pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")))
+        val result = accountRepository.findAll(pageable)
+        return AccountPage(
+            items = result.content.map(adapter::toDomain),
+            page = page,
+            size = size,
+            totalElements = result.totalElements,
+            totalPages = result.totalPages,
+        )
+    }
 
     @Transactional
     override fun rename(
