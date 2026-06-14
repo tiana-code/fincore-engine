@@ -3,6 +3,7 @@
 
 package com.fincore.ledger.api
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fincore.ledger.api.idempotency.IdempotencyAttributes
 import com.fincore.test.containers.PostgresContainerExtension
 import io.kotest.matchers.shouldBe
@@ -29,6 +30,7 @@ import java.time.Instant
 @Import(LedgerApiSmokeIT.TestSecurity::class)
 class LedgerApiSmokeIT(
     @Autowired private val rest: TestRestTemplate,
+    @Autowired private val objectMapper: ObjectMapper,
 ) {
     @TestConfiguration
     class TestSecurity {
@@ -72,7 +74,9 @@ class LedgerApiSmokeIT(
 
         first.statusCode.value() shouldBe 201
         second.statusCode.value() shouldBe 201
-        second.body shouldBe first.body
+        // response_body is a JSONB column (normalized by Postgres), so the replay is logically identical
+        // rather than byte-identical; compare the parsed JSON trees.
+        objectMapper.readTree(second.body) shouldBe objectMapper.readTree(first.body)
     }
 
     @Test
