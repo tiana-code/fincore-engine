@@ -1,0 +1,341 @@
+/* SPDX-License-Identifier: BUSL-1.1 */
+/* SPDX-FileCopyrightText: 2026 FinCore Engine Authors */
+/* FinCore design tokens - dark ops aesthetic. Ported from the design handoff bundle. */
+:root {
+  --bg: #0B0F19;
+  --bg-2: #0F1422;
+  --surface: #131826;
+  --surface-2: #19202F;
+  --surface-3: #1E2638;
+  --border: #232B3E;
+  --border-strong: #2E3852;
+  --text: #E5E9F0;
+  --text-2: #94A3B8;
+  --text-3: #64748B;
+  --text-mute: #475569;
+
+  --accent: #14B8A6;
+  --accent-dim: #0F766E;
+  --accent-bg: rgba(20,184,166,0.12);
+
+  --credit: #10B981;
+  --credit-bg: rgba(16,185,129,0.10);
+  --debit: #EF4444;
+  --debit-bg: rgba(239,68,68,0.10);
+  --amber: #F59E0B;
+  --amber-bg: rgba(245,158,11,0.12);
+  --grey: #64748B;
+  --grey-bg: rgba(100,116,139,0.12);
+  --violet: #8B5CF6;
+  --violet-bg: rgba(139,92,246,0.12);
+
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --sans: "Inter", -apple-system, system-ui, sans-serif;
+
+  /* Tone-aware text colors (used over tinted card bgs) */
+  --text-err: #FCA5A5;
+  --text-warn: #FCD34D;
+  --text-ok: #6EE7B7;
+  --text-accent: #5EEAD4;
+  --text-violet: #C4B5FD;
+  --pill-teal-text: #2DD4BF;
+  --pill-amber-text: #FCD34D;
+  --pill-red-text: #FCA5A5;
+  --pill-green-text: #6EE7B7;
+  --pill-violet-text: #C4B5FD;
+}
+
+/* Pinned-dark scope: lives inside .fc.light but keeps its insides on
+   dark theme - useful for terminal-style panes that should stay dark
+   regardless of the outer theme. */
+.fc.light .force-dark {
+  --bg: #06090F;
+  --bg-2: #0F1422;
+  --surface: #131826;
+  --surface-2: #19202F;
+  --surface-3: #1E2638;
+  --border: #232B3E;
+  --border-strong: #2E3852;
+  --text: #E5E9F0;
+  --text-2: #94A3B8;
+  --text-3: #64748B;
+  --text-mute: #475569;
+  --accent: #14B8A6;
+  --accent-dim: #0F766E;
+  --accent-bg: rgba(20,184,166,0.12);
+  --text-err: #FCA5A5;
+  --text-warn: #FCD34D;
+  --text-ok: #6EE7B7;
+  --text-accent: #5EEAD4;
+  --text-violet: #C4B5FD;
+  --pill-teal-text: #2DD4BF;
+  --pill-amber-text: #FCD34D;
+  --pill-red-text: #FCA5A5;
+  --pill-green-text: #6EE7B7;
+  --pill-violet-text: #C4B5FD;
+  color: var(--text);
+}
+
+/* Light theme overrides */
+.fc.light {
+  --bg: #F7F8FA;
+  --bg-2: #F1F3F7;
+  --surface: #FFFFFF;
+  --surface-2: #F8FAFC;
+  --surface-3: #F1F5F9;
+  --border: #E4E8EE;
+  --border-strong: #CBD2DC;
+  --text: #0F172A;
+  --text-2: #475569;
+  --text-3: #64748B;
+  --text-mute: #94A3B8;
+
+  --accent: #0D9488;
+  --accent-dim: #0F766E;
+  --accent-bg: rgba(13,148,136,0.10);
+
+  --credit: #059669;
+  --credit-bg: rgba(5,150,105,0.10);
+  --debit: #DC2626;
+  --debit-bg: rgba(220,38,38,0.10);
+  --amber: #D97706;
+  --amber-bg: rgba(217,119,6,0.12);
+  --grey: #64748B;
+  --grey-bg: rgba(100,116,139,0.10);
+  --violet: #7C3AED;
+  --violet-bg: rgba(124,58,237,0.10);
+
+  --text-err: #B91C1C;
+  --text-warn: #B45309;
+  --text-ok: #047857;
+  --text-accent: #0F766E;
+  --text-violet: #6D28D9;
+  --pill-teal-text: #0F766E;
+  --pill-amber-text: #B45309;
+  --pill-red-text: #B91C1C;
+  --pill-green-text: #047857;
+  --pill-violet-text: #6D28D9;
+}
+
+.fc {
+  font-family: var(--sans);
+  color: var(--text);
+  background: var(--bg);
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv11", "ss01", "tnum";
+}
+.fc *, .fc *::before, .fc *::after { box-sizing: border-box; }
+.fc button { font-family: inherit; }
+
+.mono { font-family: var(--mono); font-feature-settings: "tnum"; letter-spacing: -0.01em; }
+.tnum { font-variant-numeric: tabular-nums; }
+.muted { color: var(--text-2); }
+.mute2 { color: var(--text-3); }
+
+/* Pills */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 20px; padding: 0 8px;
+  border-radius: 4px;
+  font-size: 11px; font-weight: 500;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pill-teal { color: var(--pill-teal-text); background: var(--accent-bg); border-color: rgba(20,184,166,0.25); }
+.pill-amber { color: var(--pill-amber-text); background: var(--amber-bg); border-color: rgba(245,158,11,0.30); }
+.pill-red { color: var(--pill-red-text); background: var(--debit-bg); border-color: rgba(239,68,68,0.25); }
+.pill-grey { color: var(--text-2); background: var(--grey-bg); border-color: var(--border); }
+.pill-green { color: var(--pill-green-text); background: var(--credit-bg); border-color: rgba(16,185,129,0.25); }
+.pill-violet { color: var(--pill-violet-text); background: var(--violet-bg); border-color: rgba(139,92,246,0.25); }
+
+/* Chips (filters) */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 26px; padding: 0 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.chip.active { border-color: var(--accent-dim); background: var(--accent-bg); color: #5EEAD4; }
+.chip .x { color: var(--text-3); margin-left: 2px; }
+.chip .k { color: var(--text-3); }
+.chip .v { color: var(--text); font-weight: 500; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 12px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px; font-weight: 500;
+  cursor: pointer;
+}
+.btn:hover { background: var(--surface-2); }
+.btn-primary {
+  background: var(--accent); color: #03201D;
+  border-color: var(--accent);
+}
+.btn-primary:hover { background: #5EEAD4; }
+.btn-danger { color: #FCA5A5; border-color: rgba(239,68,68,0.3); }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+.btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+.btn-sm { height: 24px; padding: 0 8px; font-size: 11px; }
+
+/* Inputs */
+.input {
+  height: 30px; padding: 0 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: inherit; font-size: 12px;
+}
+.input:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* Tables */
+.tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+.tbl th {
+  font-weight: 500; color: var(--text-3); font-size: 11px;
+  text-align: left; padding: 8px 12px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase; letter-spacing: 0.04em;
+  position: sticky; top: 0;
+}
+.tbl td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+.tbl tr:hover td { background: var(--surface-2); }
+.tbl .num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.tbl .mono-cell { font-family: var(--mono); font-size: 11.5px; color: var(--text-2); }
+
+/* Numbers */
+.cr { color: var(--credit); }
+.dr { color: var(--debit); }
+
+/* Misc */
+.divider { height: 1px; background: var(--border); }
+.vdivider { width: 1px; background: var(--border); }
+.kbd {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 4px;
+  border: 1px solid var(--border); border-bottom-width: 2px;
+  border-radius: 3px;
+  font-family: var(--mono); font-size: 10px;
+  color: var(--text-2); background: var(--bg-2);
+}
+
+/* Scrollbars (visible, slim) */
+.fc-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.fc-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 6px; border: 2px solid var(--surface); }
+.fc-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* Modern scoring scope.
+   Applied on a wrapper inside .fc to push toward a more premium,
+   scoring-fintech aesthetic - bigger numbers, softer radii, gradient
+   surfaces, lime + violet accents alongside the brand teal. */
+.fc .modern {
+  --r: 14px;
+  --r-sm: 8px;
+  --r-lg: 20px;
+  --lime: #B4F500;
+  --lime-2: #84CC16;
+  --lime-bg: rgba(180,245,0,0.08);
+  --magenta: #E879F9;
+  --magenta-bg: rgba(232,121,249,0.10);
+}
+.fc.light .modern {
+  --lime: #65A30D;
+  --lime-2: #4D7C0F;
+  --lime-bg: rgba(101,163,13,0.10);
+  --magenta: #C026D3;
+  --magenta-bg: rgba(192,38,211,0.10);
+}
+.fc .modern .card-m {
+  background: linear-gradient(180deg, var(--surface), var(--bg-2));
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  position: relative;
+  overflow: hidden;
+}
+.fc.light .modern .card-m {
+  background: linear-gradient(180deg, #FFFFFF, #F8FAFC);
+}
+.fc .modern .card-elev {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 24px 60px -30px rgba(0,0,0,0.5);
+}
+.fc.light .modern .card-elev {
+  box-shadow: 0 1px 0 rgba(255,255,255,0.5) inset, 0 24px 60px -30px rgba(15,23,42,0.18);
+}
+.fc .modern .hero-num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+.fc .modern .display-sans {
+  font-family: var(--sans);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.fc .modern .eyebrow {
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  font-weight: 500;
+}
+.fc .modern .pill-soft {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 22px; padding: 0 9px;
+  border-radius: 999px;
+  font-size: 11px; font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+}
+.fc .modern .glow-teal { box-shadow: 0 0 0 1px rgba(20,184,166,0.25), 0 0 40px -8px rgba(20,184,166,0.35); }
+.fc .modern .glow-lime { box-shadow: 0 0 0 1px rgba(180,245,0,0.25), 0 0 40px -8px rgba(180,245,0,0.30); }
+.fc .modern .grid-dot {
+  background-image: radial-gradient(rgba(148,163,184,0.08) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(20,184,166,0.4); }
+  100% { box-shadow: 0 0 0 12px rgba(20,184,166,0); }
+}
+.fc .modern .pulse {
+  animation: pulse-ring 2s infinite;
+  border-radius: 50%;
+}
+
+/* Status dots */
+.dot-ok { background: var(--accent); }
+.dot-warn { background: var(--amber); }
+.dot-err { background: var(--debit); }
+.dot-off { background: var(--text-mute); }
+
+/* Sparkline default */
+.spark { display: block; }
