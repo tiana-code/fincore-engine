@@ -44,6 +44,7 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
+import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.oauth2.jwt.JwtDecoder
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt
 import org.springframework.test.web.servlet.MockMvc
@@ -101,7 +102,7 @@ class TransactionControllerTest(
     private fun postBalanced(correlationId: String? = null) =
         mockMvc.perform(
             post("/v1/transactions")
-                .with(jwt().jwt { it.subject("user-123") })
+                .with(writeJwt())
                 .header(IdempotencyAttributes.HEADER, key)
                 .apply { if (correlationId != null) header("X-Correlation-Id", correlationId) }
                 .contentType(MediaType.APPLICATION_JSON)
@@ -166,7 +167,7 @@ class TransactionControllerTest(
         mockMvc
             .perform(
                 post("/v1/transactions")
-                    .with(jwt().jwt { it.subject("user-123") })
+                    .with(writeJwt())
                     .header(IdempotencyAttributes.HEADER, key)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"reference":"r","currency":"EUR","entries":[{"accountId":"$accountA","direction":"DEBIT","amount":1}]}"""),
@@ -190,7 +191,7 @@ class TransactionControllerTest(
             )
 
         mockMvc
-            .perform(get("/v1/transactions?page=0&size=20").with(jwt()))
+            .perform(get("/v1/transactions?page=0&size=20").with(readJwt()))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.items[0].id").value(matchesPattern("^tx_[0-9A-HJKMNP-TV-Z]{26}$")))
             .andExpect(jsonPath("$.items[0].status").value("POSTED"))
@@ -204,7 +205,7 @@ class TransactionControllerTest(
         every { transactionService.list(0, 20) } returns TransactionPage(emptyList(), 0, 20, 0, 0)
 
         mockMvc
-            .perform(get("/v1/transactions").with(jwt()))
+            .perform(get("/v1/transactions").with(readJwt()))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.items").isEmpty)
             .andExpect(jsonPath("$.totalElements").value(0))
@@ -214,7 +215,7 @@ class TransactionControllerTest(
     @Test
     fun `should reject an oversized page request with 400`() {
         mockMvc
-            .perform(get("/v1/transactions?size=101").with(jwt()))
+            .perform(get("/v1/transactions?size=101").with(readJwt()))
             .andExpect(status().isBadRequest)
 
         verify(exactly = 0) { transactionService.list(any(), any()) }
@@ -223,7 +224,7 @@ class TransactionControllerTest(
     @Test
     fun `should reject a zero page size with 400`() {
         mockMvc
-            .perform(get("/v1/transactions?size=0").with(jwt()))
+            .perform(get("/v1/transactions?size=0").with(readJwt()))
             .andExpect(status().isBadRequest)
 
         verify(exactly = 0) { transactionService.list(any(), any()) }
@@ -232,7 +233,7 @@ class TransactionControllerTest(
     @Test
     fun `should reject a negative page index with 400`() {
         mockMvc
-            .perform(get("/v1/transactions?page=-1").with(jwt()))
+            .perform(get("/v1/transactions?page=-1").with(readJwt()))
             .andExpect(status().isBadRequest)
 
         verify(exactly = 0) { transactionService.list(any(), any()) }
@@ -262,7 +263,7 @@ class TransactionControllerTest(
             )
 
         mockMvc
-            .perform(get("/v1/transactions/$txId").with(jwt()))
+            .perform(get("/v1/transactions/$txId").with(readJwt()))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.id").value(txId.toString()))
             .andExpect(jsonPath("$.id").value(matchesPattern("^tx_[0-9A-HJKMNP-TV-Z]{26}$")))
@@ -279,7 +280,7 @@ class TransactionControllerTest(
         every { transactionService.get(any()) } throws TransactionNotFoundException(TransactionId.generate())
 
         mockMvc
-            .perform(get("/v1/transactions/${TransactionId.generate()}").with(jwt()))
+            .perform(get("/v1/transactions/${TransactionId.generate()}").with(readJwt()))
             .andExpect(status().isNotFound)
             .andExpect(jsonPath("$.status").value(404))
     }
@@ -287,7 +288,7 @@ class TransactionControllerTest(
     @Test
     fun `should return 400 for a malformed transaction id without calling the service`() {
         mockMvc
-            .perform(get("/v1/transactions/tx_zzz").with(jwt()))
+            .perform(get("/v1/transactions/tx_zzz").with(readJwt()))
             .andExpect(status().isBadRequest)
 
         verify(exactly = 0) { transactionService.get(any()) }
@@ -299,7 +300,7 @@ class TransactionControllerTest(
         authenticated: Boolean = true,
     ) = mockMvc.perform(
         post("/v1/transactions/$id/reverse")
-            .apply { if (authenticated) with(jwt().jwt { it.subject("user-123") }) }
+            .apply { if (authenticated) with(writeJwt()) }
             .apply { if (withKey) header(IdempotencyAttributes.HEADER, key) }
             .contentType(MediaType.APPLICATION_JSON),
     )
@@ -343,5 +344,37 @@ class TransactionControllerTest(
     @Test
     fun `should reject an unauthenticated reverse with 401`() {
         reverse(TransactionId.generate().toString(), authenticated = false).andExpect(status().isUnauthorized)
+    }
+
+    @Test
+    fun `should return 403 when posting a transaction with only the read scope`() {
+        mockMvc
+            .perform(
+                post("/v1/transactions")
+                    .with(readJwt())
+                    .header(IdempotencyAttributes.HEADER, key)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(balancedBody()),
+            ).andExpect(status().isForbidden)
+
+        verify(exactly = 0) { transactionService.post(any()) }
+    }
+
+    @Test
+    fun `should return 403 when listing transactions with only the write scope`() {
+        mockMvc
+            .perform(get("/v1/transactions").with(writeJwt()))
+            .andExpect(status().isForbidden)
+
+        verify(exactly = 0) { transactionService.list(any(), any()) }
+    }
+
+    private fun readJwt() = jwt().authorities(SimpleGrantedAuthority(SCOPE_READ))
+
+    private fun writeJwt() = jwt().jwt { it.subject("user-123") }.authorities(SimpleGrantedAuthority(SCOPE_WRITE))
+
+    private companion object {
+        const val SCOPE_READ = "SCOPE_ledger:read"
+        const val SCOPE_WRITE = "SCOPE_ledger:write"
     }
 }

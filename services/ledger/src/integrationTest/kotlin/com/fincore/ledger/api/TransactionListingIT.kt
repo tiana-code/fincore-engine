@@ -44,6 +44,7 @@ class TransactionListingIT(
                     .withTokenValue(token)
                     .header("alg", "none")
                     .subject("tx-list-it")
+                    .claim("scope", "ledger:read")
                     .issuedAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(EXPIRY_SECONDS))
                     .build()

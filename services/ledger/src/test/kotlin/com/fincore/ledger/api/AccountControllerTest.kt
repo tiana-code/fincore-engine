@@ -48,6 +48,7 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
+import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.oauth2.jwt.JwtDecoder
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt
 import org.springframework.test.web.servlet.MockMvc
@@ -108,7 +109,7 @@ class AccountControllerTest(
         mockMvc
             .perform(
                 post("/v1/accounts")
-                    .with(jwt().jwt { it.subject("user-123") })
+                    .with(writeJwt())
                     .header(IdempotencyAttributes.HEADER, key)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"name":"Operating cash","type":"USER_WALLET","currency":"EUR"}"""),
@@ -127,7 +128,7 @@ class AccountControllerTest(
         every { accountService.get(any()) } throws AccountNotFoundException(id)
 
         mockMvc
-            .perform(get("/v1/accounts/$id").with(jwt()))
+            .perform(get("/v1/accounts/$id").with(readJwt()))
             .andExpect(status().isNotFound)
             .andExpect(jsonPath("$.status").value(404))
             .andExpect(jsonPath("$.detail", not(containsString("Exception"))))
@@ -136,7 +137,7 @@ class AccountControllerTest(
     @Test
     fun `should return 400 for a malformed account id without calling the service`() {
         mockMvc
-            .perform(get("/v1/accounts/acc_zzz").with(jwt()))
+            .perform(get("/v1/accounts/acc_zzz").with(readJwt()))
             .andExpect(status().isBadRequest)
 
         verify(exactly = 0) { accountService.get(any()) }
@@ -150,7 +151,7 @@ class AccountControllerTest(
             AccountBalance(id, Money.of(BigDecimal("100.00"), Currency.EUR), Instant.parse("2026-06-13T10:00:00Z"))
 
         mockMvc
-            .perform(get("/v1/accounts/$id/balance").with(jwt()))
+            .perform(get("/v1/accounts/$id/balance").with(readJwt()))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.accountId").value(id.toString()))
             .andExpect(jsonPath("$.currency").value("EUR"))
@@ -164,7 +165,7 @@ class AccountControllerTest(
         mockMvc
             .perform(
                 post("/v1/accounts")
-                    .with(jwt().jwt { it.subject("user-123") })
+                    .with(writeJwt())
                     .header(IdempotencyAttributes.HEADER, key)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"name":"Operating cash","type":"USER_WALLET","currency":"EUR"}"""),
@@ -181,7 +182,7 @@ class AccountControllerTest(
         mockMvc
             .perform(
                 post("/v1/accounts")
-                    .with(jwt().jwt { it.subject("user-123") })
+                    .with(writeJwt())
                     .header(IdempotencyAttributes.HEADER, key)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"name":"Operating cash","type":"USER_WALLET","currency":"EUR"}"""),
@@ -193,7 +194,7 @@ class AccountControllerTest(
         mockMvc
             .perform(
                 post("/v1/accounts")
-                    .with(jwt().jwt { it.subject("user-123") })
+                    .with(writeJwt())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"name":"Operating cash","type":"USER_WALLET","currency":"EUR"}"""),
             ).andExpect(status().isBadRequest)
@@ -213,7 +214,7 @@ class AccountControllerTest(
         mockMvc
             .perform(
                 post("/v1/accounts")
-                    .with(jwt().jwt { it.subject("user-123") })
+                    .with(writeJwt())
                     .header(IdempotencyAttributes.HEADER, key)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"name":"Operating cash","type":"USER_WALLET","currency":"euro"}"""),
@@ -236,7 +237,7 @@ class AccountControllerTest(
             )
 
         mockMvc
-            .perform(get("/v1/accounts?page=0&size=20").with(jwt()))
+            .perform(get("/v1/accounts?page=0&size=20").with(readJwt()))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.items[0].id").value(matchesPattern("^acc_[0-9A-HJKMNP-TV-Z]{26}$")))
             .andExpect(jsonPath("$.page").value(0))
@@ -246,7 +247,7 @@ class AccountControllerTest(
     @Test
     fun `should reject an oversized page request with 400`() {
         mockMvc
-            .perform(get("/v1/accounts?size=101").with(jwt()))
+            .perform(get("/v1/accounts?size=101").with(readJwt()))
             .andExpect(status().isBadRequest)
 
         verify(exactly = 0) { accountService.list(any(), any()) }
@@ -255,7 +256,7 @@ class AccountControllerTest(
     @Test
     fun `should reject a negative page index with 400`() {
         mockMvc
-            .perform(get("/v1/accounts?page=-1").with(jwt()))
+            .perform(get("/v1/accounts?page=-1").with(readJwt()))
             .andExpect(status().isBadRequest)
     }
 
@@ -280,7 +281,7 @@ class AccountControllerTest(
             AccountEntryPage(listOf(entry()), "Y3Vyc29y")
 
         mockMvc
-            .perform(get("/v1/accounts/${AccountId.generate()}/entries").with(jwt()))
+            .perform(get("/v1/accounts/${AccountId.generate()}/entries").with(readJwt()))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.items[0].id").value(matchesPattern("^ent_[0-9A-HJKMNP-TV-Z]{26}$")))
             .andExpect(jsonPath("$.items[0].transactionId").value(matchesPattern("^tx_[0-9A-HJKMNP-TV-Z]{26}$")))
@@ -292,7 +293,7 @@ class AccountControllerTest(
     @Test
     fun `should return 400 for a malformed account id on the entries endpoint`() {
         mockMvc
-            .perform(get("/v1/accounts/acc_zzz/entries").with(jwt()))
+            .perform(get("/v1/accounts/acc_zzz/entries").with(readJwt()))
             .andExpect(status().isBadRequest)
 
         verify(exactly = 0) { entryQueryService.listAccountEntries(any(), any(), any(), any(), any()) }
@@ -301,7 +302,7 @@ class AccountControllerTest(
     @Test
     fun `should return 400 for a malformed from timestamp`() {
         mockMvc
-            .perform(get("/v1/accounts/${AccountId.generate()}/entries?from=not-a-date").with(jwt()))
+            .perform(get("/v1/accounts/${AccountId.generate()}/entries?from=not-a-date").with(readJwt()))
             .andExpect(status().isBadRequest)
 
         verify(exactly = 0) { entryQueryService.listAccountEntries(any(), any(), any(), any(), any()) }
@@ -313,7 +314,7 @@ class AccountControllerTest(
             IllegalArgumentException("range must span at most 90 days")
 
         mockMvc
-            .perform(get("/v1/accounts/${AccountId.generate()}/entries?limit=300").with(jwt()))
+            .perform(get("/v1/accounts/${AccountId.generate()}/entries?limit=300").with(readJwt()))
             .andExpect(status().isBadRequest)
     }
 
@@ -323,7 +324,7 @@ class AccountControllerTest(
             AccountNotFoundException(AccountId.generate())
 
         mockMvc
-            .perform(get("/v1/accounts/${AccountId.generate()}/entries").with(jwt()))
+            .perform(get("/v1/accounts/${AccountId.generate()}/entries").with(readJwt()))
             .andExpect(status().isNotFound)
     }
 
@@ -332,5 +333,37 @@ class AccountControllerTest(
         mockMvc
             .perform(get("/v1/accounts/${AccountId.generate()}/entries"))
             .andExpect(status().isUnauthorized)
+    }
+
+    @Test
+    fun `should return 403 when creating an account with only the read scope`() {
+        mockMvc
+            .perform(
+                post("/v1/accounts")
+                    .with(readJwt())
+                    .header(IdempotencyAttributes.HEADER, key)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"name":"Operating cash","type":"USER_WALLET","currency":"EUR"}"""),
+            ).andExpect(status().isForbidden)
+
+        verify(exactly = 0) { accountService.create(any()) }
+    }
+
+    @Test
+    fun `should return 403 when reading an account with only the write scope`() {
+        mockMvc
+            .perform(get("/v1/accounts/${AccountId.generate()}").with(writeJwt()))
+            .andExpect(status().isForbidden)
+
+        verify(exactly = 0) { accountService.get(any()) }
+    }
+
+    private fun readJwt() = jwt().authorities(SimpleGrantedAuthority(SCOPE_READ))
+
+    private fun writeJwt() = jwt().jwt { it.subject("user-123") }.authorities(SimpleGrantedAuthority(SCOPE_WRITE))
+
+    private companion object {
+        const val SCOPE_READ = "SCOPE_ledger:read"
+        const val SCOPE_WRITE = "SCOPE_ledger:write"
     }
 }
