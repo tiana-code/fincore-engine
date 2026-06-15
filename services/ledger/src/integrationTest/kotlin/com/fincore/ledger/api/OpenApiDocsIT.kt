@@ -12,16 +12,38 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.test.web.client.TestRestTemplate
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
+import org.springframework.security.oauth2.jwt.Jwt
+import org.springframework.security.oauth2.jwt.JwtDecoder
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
+import java.time.Instant
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ExtendWith(PostgresContainerExtension::class)
+@Import(OpenApiDocsIT.TestSecurity::class)
 class OpenApiDocsIT(
     @Autowired private val rest: TestRestTemplate,
     @Autowired private val objectMapper: ObjectMapper,
 ) {
+    @TestConfiguration
+    class TestSecurity {
+        @Bean
+        fun jwtDecoder(): JwtDecoder =
+            JwtDecoder { token ->
+                Jwt
+                    .withTokenValue(token)
+                    .header("alg", "none")
+                    .subject("openapi-docs-it")
+                    .issuedAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(EXPIRY_SECONDS))
+                    .build()
+            }
+    }
+
     private fun apiDocs(): JsonNode = objectMapper.readTree(rest.getForEntity("/v3/api-docs", String::class.java).body)
 
     @Test
@@ -49,6 +71,8 @@ class OpenApiDocsIT(
     }
 
     companion object {
+        private const val EXPIRY_SECONDS = 300L
+
         @JvmStatic
         @DynamicPropertySource
         fun datasourceProperties(registry: DynamicPropertyRegistry) {
