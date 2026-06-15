@@ -46,7 +46,7 @@ class ScopeAuthorizationMatrixIT(
                     .withTokenValue(token)
                     .header("alg", "none")
                     .subject("scope-matrix-it")
-                    .claim("scope", token)
+                    .claim("scope", "ledger:$token")
                     .issuedAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(EXPIRY_SECONDS))
                     .build()
@@ -80,7 +80,7 @@ class ScopeAuthorizationMatrixIT(
     @Test
     fun `should pass authorization for every endpoint when the token carries the matching scope`() {
         endpoints.forEach { endpoint ->
-            val response = call(endpoint, scopeOf(endpoint.access))
+            val response = call(endpoint, endpoint.access)
             withClue("${endpoint.method} ${endpoint.path} with ${endpoint.access}") {
                 response.statusCode.value() shouldNotBe FORBIDDEN
                 response.statusCode.value() shouldNotBe UNAUTHORIZED
@@ -92,7 +92,7 @@ class ScopeAuthorizationMatrixIT(
     fun `should return 403 for every endpoint when the token carries only the opposite scope`() {
         endpoints.forEach { endpoint ->
             val opposite = if (endpoint.access == Access.READ) Access.WRITE else Access.READ
-            val response = call(endpoint, scopeOf(opposite))
+            val response = call(endpoint, opposite)
             withClue("${endpoint.method} ${endpoint.path} with $opposite") {
                 response.statusCode.value() shouldBe FORBIDDEN
             }
@@ -101,12 +101,12 @@ class ScopeAuthorizationMatrixIT(
 
     private fun call(
         endpoint: Endpoint,
-        scope: String,
+        access: Access,
     ): ResponseEntity<String> {
         val headers =
             HttpHeaders().apply {
                 contentType = MediaType.APPLICATION_JSON
-                setBearerAuth(scope)
+                setBearerAuth(bearerFor(access))
                 set(CorrelationIdAttributes.HEADER, UUID.randomUUID().toString())
                 if (endpoint.method == HttpMethod.POST) set(IdempotencyAttributes.HEADER, idemKey())
             }
@@ -114,7 +114,7 @@ class ScopeAuthorizationMatrixIT(
         return rest.exchange(endpoint.path, endpoint.method, HttpEntity(body, headers), String::class.java)
     }
 
-    private fun scopeOf(access: Access): String = if (access == Access.READ) "ledger:read" else "ledger:write"
+    private fun bearerFor(access: Access): String = if (access == Access.READ) "read" else "write"
 
     private companion object {
         const val EXPIRY_SECONDS = 3600L

@@ -14,6 +14,7 @@ class PostgresContainerExtension : BeforeAllCallback {
 
     companion object {
         private const val IMAGE = "postgres:17-alpine"
+        private const val MAX_CONNECTIONS = 200
 
         @Volatile
         private var container: PostgreSQLContainer<*>? = null
@@ -27,6 +28,7 @@ class PostgresContainerExtension : BeforeAllCallback {
                     .withDatabaseName("fincore_test")
                     .withUsername("fincore")
                     .withPassword("fincore")
+                    .withCommand("postgres", "-c", "max_connections=$MAX_CONNECTIONS")
                     .withReuse(true)
             fresh.start()
             container = fresh
