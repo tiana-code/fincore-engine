@@ -19,9 +19,18 @@ import com.fincore.ledger.application.EntryQueryService
 import com.fincore.ledger.application.IdempotencyService
 import com.fincore.ledger.application.IdempotentResult
 import com.fincore.ledger.application.StoredResponse
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.enums.ParameterIn
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.oauth2.jwt.Jwt
@@ -36,6 +45,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.net.URI
 import java.time.Instant
 
+@Tag(name = "Accounts", description = "Ledger account lifecycle, balances, and entries")
 @RestController
 @RequestMapping("/v1/accounts")
 class AccountController(
@@ -46,12 +56,42 @@ class AccountController(
     private val mapper: LedgerApiMapper,
     private val objectMapper: ObjectMapper,
 ) {
+    @Operation(
+        summary = "Create a ledger account",
+        description = "Creates an account. Requires an Idempotency-Key; same key plus same body replays the original result.",
+        parameters = [
+            Parameter(
+                `in` = ParameterIn.HEADER,
+                name = "Idempotency-Key",
+                required = true,
+                description = "Idempotency key, 32-128 chars matching ^[A-Za-z0-9_-]+$",
+            ),
+        ],
+    )
+    @ApiResponses(
+        ApiResponse(responseCode = "201", description = "Account created"),
+        ApiResponse(
+            responseCode = "400",
+            description = "Invalid body or missing Idempotency-Key",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+        ApiResponse(
+            responseCode = "401",
+            description = "Missing or invalid bearer token",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+        ApiResponse(
+            responseCode = "409",
+            description = "Idempotency-Key reused with a different body",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+    )
     @PostMapping
     fun create(
         @Valid @RequestBody request: CreateAccountRequest,
-        @AuthenticationPrincipal jwt: Jwt,
-        @RequestAttribute(IdempotencyAttributes.KEY) key: String,
-        @RequestAttribute(IdempotencyAttributes.BODY) rawBody: String,
+        @Parameter(hidden = true) @AuthenticationPrincipal jwt: Jwt,
+        @Parameter(hidden = true) @RequestAttribute(IdempotencyAttributes.KEY) key: String,
+        @Parameter(hidden = true) @RequestAttribute(IdempotencyAttributes.BODY) rawBody: String,
     ): ResponseEntity<String> {
         var location: URI? = null
         val result =
@@ -63,37 +103,91 @@ class AccountController(
         return respond(result, location)
     }
 
+    @Operation(summary = "List accounts", description = "Returns a page of accounts, newest first.")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Page of accounts"),
+        ApiResponse(
+            responseCode = "400",
+            description = "Invalid page or size",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+        ApiResponse(
+            responseCode = "401",
+            description = "Missing or invalid bearer token",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+    )
     @GetMapping
     fun list(
-        @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "20") size: Int,
+        @Parameter(description = "Zero-based page index") @RequestParam(defaultValue = "0") page: Int,
+        @Parameter(description = "Page size, 1..100") @RequestParam(defaultValue = "20") size: Int,
     ): PageResponse<AccountResponse> {
         require(page >= 0) { "page must be >= 0" }
         require(size in 1..MAX_PAGE_SIZE) { "size must be 1..$MAX_PAGE_SIZE" }
         return mapper.toPageResponse(accountService.list(page, size))
     }
 
+    @Operation(summary = "Get an account", description = "Returns a single account by id.")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "The account"),
+        ApiResponse(
+            responseCode = "400",
+            description = "Malformed account id",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+        ApiResponse(
+            responseCode = "404",
+            description = "Account not found",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+    )
     @GetMapping("/{id}")
     fun get(
-        @PathVariable id: String,
+        @Parameter(description = "Account id (acc_ prefixed ULID)") @PathVariable id: String,
     ): AccountResponse = mapper.toResponse(accountService.get(AccountId.fromString(id)))
 
+    @Operation(summary = "Get an account balance", description = "Returns the current balance for an account in its currency.")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "The current balance"),
+        ApiResponse(
+            responseCode = "404",
+            description = "Account not found",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+    )
     @GetMapping("/{id}/balance")
     fun balance(
-        @PathVariable id: String,
+        @Parameter(description = "Account id (acc_ prefixed ULID)") @PathVariable id: String,
     ): BalanceResponse {
         val accountId = AccountId.fromString(id)
         val account = accountService.get(accountId)
         return mapper.toResponse(balanceService.current(accountId, account.currency))
     }
 
+    @Operation(
+        summary = "List account entries",
+        description = "Returns a page of ledger entries for an account, newest first, over an optional time window with cursor pagination.",
+    )
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Page of entries"),
+        ApiResponse(
+            responseCode = "400",
+            description = "Malformed id, timestamps, window, limit, or cursor",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+        ApiResponse(
+            responseCode = "404",
+            description = "Account not found",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+    )
     @GetMapping("/{id}/entries")
     fun entries(
-        @PathVariable id: String,
-        @RequestParam(required = false) from: String?,
-        @RequestParam(required = false) to: String?,
-        @RequestParam(required = false) cursor: String?,
-        @RequestParam(defaultValue = "50") limit: Int,
+        @Parameter(description = "Account id (acc_ prefixed ULID)") @PathVariable id: String,
+        @Parameter(description = "Inclusive window start, ISO-8601 instant") @RequestParam(required = false) from: String?,
+        @Parameter(description = "Exclusive window end, ISO-8601 instant") @RequestParam(required = false) to: String?,
+        @Parameter(description = "Opaque pagination cursor") @RequestParam(required = false) cursor: String?,
+        @Parameter(description = "Page size, 1..200") @RequestParam(defaultValue = "50") limit: Int,
     ): EntryPageResponse {
         val page =
             entryQueryService.listAccountEntries(
@@ -122,5 +216,6 @@ class AccountController(
 
     private companion object {
         const val MAX_PAGE_SIZE = 100
+        const val PROBLEM_JSON = "application/problem+json"
     }
 }

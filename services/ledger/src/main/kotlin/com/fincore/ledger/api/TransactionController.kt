@@ -16,9 +16,18 @@ import com.fincore.ledger.application.IdempotencyService
 import com.fincore.ledger.application.IdempotentResult
 import com.fincore.ledger.application.StoredResponse
 import com.fincore.ledger.application.TransactionService
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.enums.ParameterIn
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.oauth2.jwt.Jwt
@@ -33,6 +42,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.net.URI
 
+@Tag(name = "Transactions", description = "Double-entry transaction posting, lookup, and reversal")
 @RestController
 @RequestMapping("/v1/transactions")
 class TransactionController(
@@ -41,13 +51,48 @@ class TransactionController(
     private val mapper: LedgerApiMapper,
     private val objectMapper: ObjectMapper,
 ) {
+    @Operation(
+        summary = "Post a transaction",
+        description = "Posts a balanced double-entry transaction. Requires an Idempotency-Key; entries net to zero in one currency.",
+        parameters = [
+            Parameter(
+                `in` = ParameterIn.HEADER,
+                name = "Idempotency-Key",
+                required = true,
+                description = "Idempotency key, 32-128 chars matching ^[A-Za-z0-9_-]+$",
+            ),
+        ],
+    )
+    @ApiResponses(
+        ApiResponse(responseCode = "201", description = "Transaction posted"),
+        ApiResponse(
+            responseCode = "400",
+            description = "Invalid body or missing Idempotency-Key",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+        ApiResponse(
+            responseCode = "404",
+            description = "Referenced account not found",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+        ApiResponse(
+            responseCode = "409",
+            description = "Duplicate reference or idempotency conflict",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+        ApiResponse(
+            responseCode = "422",
+            description = "Double-entry or currency consistency violation",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+    )
     @PostMapping
     fun post(
         @Valid @RequestBody request: PostTransactionRequest,
-        @AuthenticationPrincipal jwt: Jwt,
+        @Parameter(hidden = true) @AuthenticationPrincipal jwt: Jwt,
         @RequestHeader(value = CORRELATION_HEADER, required = false) correlationId: String?,
-        @RequestAttribute(IdempotencyAttributes.KEY) key: String,
-        @RequestAttribute(IdempotencyAttributes.BODY) rawBody: String,
+        @Parameter(hidden = true) @RequestAttribute(IdempotencyAttributes.KEY) key: String,
+        @Parameter(hidden = true) @RequestAttribute(IdempotencyAttributes.BODY) rawBody: String,
     ): ResponseEntity<String> {
         var location: URI? = null
         val result =
@@ -59,28 +104,81 @@ class TransactionController(
         return respond(result, location)
     }
 
+    @Operation(summary = "List transactions", description = "Returns a page of transactions, newest first.")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Page of transactions"),
+        ApiResponse(
+            responseCode = "400",
+            description = "Invalid page or size",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+    )
     @GetMapping
     fun list(
-        @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "20") size: Int,
+        @Parameter(description = "Zero-based page index") @RequestParam(defaultValue = "0") page: Int,
+        @Parameter(description = "Page size, 1..100") @RequestParam(defaultValue = "20") size: Int,
     ): PageResponse<TransactionResponse> {
         require(page >= 0) { "page must be >= 0" }
         require(size in 1..MAX_PAGE_SIZE) { "size must be 1..$MAX_PAGE_SIZE" }
         return mapper.toPageResponse(transactionService.list(page, size))
     }
 
+    @Operation(summary = "Get a transaction", description = "Returns a transaction with its entries by id.")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "The transaction with entries"),
+        ApiResponse(
+            responseCode = "400",
+            description = "Malformed transaction id",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+        ApiResponse(
+            responseCode = "404",
+            description = "Transaction not found",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+    )
     @GetMapping("/{id}")
     fun get(
-        @PathVariable id: String,
+        @Parameter(description = "Transaction id (tx_ prefixed ULID)") @PathVariable id: String,
     ): TransactionDetailResponse = mapper.toDetailResponse(transactionService.get(TransactionId.fromString(id)))
 
+    @Operation(
+        summary = "Reverse a transaction",
+        description = "Posts a compensating transaction that reverses an existing POSTED transaction. Requires an Idempotency-Key header.",
+        parameters = [
+            Parameter(
+                `in` = ParameterIn.HEADER,
+                name = "Idempotency-Key",
+                required = true,
+                description = "Idempotency key, 32-128 chars matching ^[A-Za-z0-9_-]+$",
+            ),
+        ],
+    )
+    @ApiResponses(
+        ApiResponse(responseCode = "201", description = "Compensating transaction posted"),
+        ApiResponse(
+            responseCode = "400",
+            description = "Malformed id or missing Idempotency-Key",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+        ApiResponse(
+            responseCode = "404",
+            description = "Transaction not found",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+        ApiResponse(
+            responseCode = "409",
+            description = "Transaction already reversed",
+            content = [Content(mediaType = PROBLEM_JSON, schema = Schema(implementation = ProblemDetail::class))],
+        ),
+    )
     @PostMapping("/{id}/reverse")
     fun reverse(
-        @PathVariable id: String,
-        @AuthenticationPrincipal jwt: Jwt,
+        @Parameter(description = "Transaction id (tx_ prefixed ULID)") @PathVariable id: String,
+        @Parameter(hidden = true) @AuthenticationPrincipal jwt: Jwt,
         @RequestHeader(value = CORRELATION_HEADER, required = false) correlationId: String?,
-        @RequestAttribute(IdempotencyAttributes.KEY) key: String,
-        @RequestAttribute(IdempotencyAttributes.BODY) rawBody: String,
+        @Parameter(hidden = true) @RequestAttribute(IdempotencyAttributes.KEY) key: String,
+        @Parameter(hidden = true) @RequestAttribute(IdempotencyAttributes.BODY) rawBody: String,
     ): ResponseEntity<String> {
         val transactionId = TransactionId.fromString(id)
         var location: URI? = null
@@ -107,5 +205,6 @@ class TransactionController(
     private companion object {
         const val CORRELATION_HEADER = "X-Correlation-Id"
         const val MAX_PAGE_SIZE = 100
+        const val PROBLEM_JSON = "application/problem+json"
     }
 }
