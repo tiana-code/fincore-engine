@@ -58,6 +58,20 @@ export interface TransactionDetailResponse {
     entries: EntryResponse[]
 }
 
+export interface AccountEntryResponse {
+    id: string
+    transactionId: string
+    direction: EntryDirection
+    amount: string
+    currency: string
+    postedAt: string
+}
+
+export interface EntryPageResponse {
+    items: AccountEntryResponse[]
+    nextCursor: string | null
+}
+
 export interface BalanceResponse {
     accountId: string
     currency: string
