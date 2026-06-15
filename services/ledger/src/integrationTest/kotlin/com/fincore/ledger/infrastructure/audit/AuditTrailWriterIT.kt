@@ -33,6 +33,7 @@ import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import javax.sql.DataSource
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -47,6 +48,7 @@ class AuditTrailWriterIT(
     @Autowired private val writer: AuditTrailWriter,
     @Autowired private val auditRepository: AuditEventRepository,
     @Autowired private val helper: AuditTrailWriterIT.WriteHelper,
+    @Autowired private val dataSource: DataSource,
 ) {
     @TestConfiguration
     class JacksonConfig {
@@ -106,7 +108,9 @@ class AuditTrailWriterIT(
     @AfterEach
     fun cleanUp() {
         MDC.clear()
-        auditRepository.deleteAll()
+        dataSource.connection.use { connection ->
+            connection.createStatement().use { it.execute("TRUNCATE platform.audit_events") }
+        }
     }
 
     @Test

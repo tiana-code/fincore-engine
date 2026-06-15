@@ -20,7 +20,6 @@ import com.fincore.ledger.infrastructure.audit.AuditTrailWriterImpl
 import com.fincore.ledger.infrastructure.outbox.OutboxEventPublisherImpl
 import com.fincore.ledger.infrastructure.persistence.AccountPersistenceAdapter
 import com.fincore.ledger.infrastructure.persistence.AuditEventRepository
-import com.fincore.ledger.infrastructure.persistence.OutboxEventRepository
 import com.fincore.ledger.infrastructure.persistence.TransactionPersistenceAdapter
 import com.fincore.test.containers.PostgresContainerExtension
 import io.kotest.matchers.booleans.shouldBeFalse
@@ -66,7 +65,6 @@ class AuditWritePathIT(
     @Autowired private val transactionService: TransactionService,
     @Autowired private val idempotencyService: IdempotencyService,
     @Autowired private val auditRepository: AuditEventRepository,
-    @Autowired private val outboxRepository: OutboxEventRepository,
     @Autowired private val objectMapper: ObjectMapper,
 ) {
     @TestConfiguration
@@ -78,8 +76,6 @@ class AuditWritePathIT(
     @AfterEach
     fun cleanUp() {
         MDC.clear()
-        auditRepository.deleteAll()
-        outboxRepository.deleteAll()
     }
 
     private fun newAccount(): com.fincore.ledger.domain.Account =
@@ -147,7 +143,7 @@ class AuditWritePathIT(
 
         accountService.changeStatus(account.id, AccountStatus.FROZEN, ACTOR)
 
-        val rows = auditRepository.findAll()
+        val rows = auditRepository.findAll().filter { it.action == AuditAction.ACCOUNT_STATUS_CHANGE.name }
         rows.size shouldBe 1
         val row = rows.first()
         row.action shouldBe AuditAction.ACCOUNT_STATUS_CHANGE.name
@@ -167,7 +163,7 @@ class AuditWritePathIT(
 
         accountService.rename(account.id, "Renamed Account", ACTOR)
 
-        val rows = auditRepository.findAll()
+        val rows = auditRepository.findAll().filter { it.action == AuditAction.ACCOUNT_RENAME.name }
         rows.size shouldBe 1
         val row = rows.first()
         row.action shouldBe AuditAction.ACCOUNT_RENAME.name
@@ -183,14 +179,12 @@ class AuditWritePathIT(
         MDC.put(CorrelationIdAttributes.MDC_KEY, CORR_ID)
         val debit = newAccount()
         val credit = newAccount()
-        // clear account_create audit rows
-        auditRepository.deleteAll()
 
         val requestBody = """{"reference":"ref-audit-4","currency":"USD"}"""
         val expectedHash = sha256Hex(requestBody)
         val posted = postBalanced("ref-audit-4", debit.id, credit.id, requestHash = expectedHash)
 
-        val rows = auditRepository.findAll()
+        val rows = auditRepository.findAll().filter { it.action == AuditAction.TRANSACTION_POST.name }
         rows.size shouldBe 1
         val row = rows.first()
         row.action shouldBe AuditAction.TRANSACTION_POST.name
@@ -207,7 +201,6 @@ class AuditWritePathIT(
         val debit = newAccount()
         val credit = newAccount()
         val original = postBalanced("ref-audit-5", debit.id, credit.id)
-        auditRepository.deleteAll()
 
         val requestBody = """{"reason":"duplicate posting"}"""
         val expectedHash = sha256Hex(requestBody)
@@ -220,7 +213,7 @@ class AuditWritePathIT(
                 requestHash = expectedHash,
             )
 
-        val rows = auditRepository.findAll()
+        val rows = auditRepository.findAll().filter { it.action == AuditAction.TRANSACTION_REVERSE.name }
         rows.size shouldBe 1
         val row = rows.first()
         row.action shouldBe AuditAction.TRANSACTION_REVERSE.name
@@ -240,7 +233,6 @@ class AuditWritePathIT(
         val debit = newAccount()
         val credit = newAccount()
         val original = postBalanced("ref-audit-6", debit.id, credit.id)
-        auditRepository.deleteAll()
 
         val compensating =
             transactionService.reverse(
@@ -251,7 +243,7 @@ class AuditWritePathIT(
                 requestHash = null,
             )
 
-        val rows = auditRepository.findAll()
+        val rows = auditRepository.findAll().filter { it.action == AuditAction.TRANSACTION_REVERSE.name }
         rows.size shouldBe 1
         val row = rows.first()
         row.action shouldBe AuditAction.TRANSACTION_REVERSE.name
@@ -290,7 +282,7 @@ class AuditWritePathIT(
         }
 
         runs shouldBe 1
-        auditRepository.findAll().size shouldBe 1
+        auditRepository.findAll().filter { it.action == AuditAction.ACCOUNT_CREATE.name }.size shouldBe 1
     }
 
     companion object {

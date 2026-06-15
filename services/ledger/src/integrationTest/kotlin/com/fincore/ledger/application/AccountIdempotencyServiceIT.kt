@@ -3,11 +3,15 @@
 
 package com.fincore.ledger.application
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fincore.core.Currency
 import com.fincore.core.IdempotencyKey
 import com.fincore.ledger.domain.enum.AccountStatus
 import com.fincore.ledger.domain.enum.AccountType
 import com.fincore.ledger.domain.exception.IdempotencyConflictException
+import com.fincore.ledger.infrastructure.audit.AuditTrailWriterImpl
 import com.fincore.ledger.infrastructure.persistence.AccountBalanceEntity
 import com.fincore.ledger.infrastructure.persistence.AccountBalanceKey
 import com.fincore.ledger.infrastructure.persistence.AccountBalanceRepository
@@ -20,6 +24,8 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
@@ -34,12 +40,20 @@ import java.time.Instant
     AccountPersistenceAdapter::class,
     IdempotencyServiceImpl::class,
     IdempotencyStore::class,
+    AuditTrailWriterImpl::class,
+    AccountIdempotencyServiceIT.JacksonConfig::class,
 )
 class AccountIdempotencyServiceIT(
     @Autowired private val accountService: AccountService,
     @Autowired private val idempotencyService: IdempotencyService,
     @Autowired private val balanceRepository: AccountBalanceRepository,
 ) {
+    @TestConfiguration
+    class JacksonConfig {
+        @Bean
+        fun objectMapper(): ObjectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
+    }
+
     @Test
     fun `should create and read back an account`() {
         val created = accountService.create(CreateAccountCommand("Wallet", AccountType.USER_WALLET, Currency.USD, "auth0|op"))
