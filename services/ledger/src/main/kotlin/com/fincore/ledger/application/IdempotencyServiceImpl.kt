@@ -4,6 +4,8 @@
 package com.fincore.ledger.application
 
 import com.fincore.core.IdempotencyKey
+import com.fincore.ledger.domain.exception.ConcurrencyConflictException
+import org.springframework.dao.OptimisticLockingFailureException
 import org.springframework.stereotype.Service
 import java.security.MessageDigest
 
@@ -11,7 +13,6 @@ import java.security.MessageDigest
 class IdempotencyServiceImpl(
     private val store: IdempotencyStore,
 ) : IdempotencyService {
-    @Suppress("SwallowedException") // race is recovered by retry in a fresh transaction, not an error
     override fun execute(
         key: IdempotencyKey,
         requestBody: String,
@@ -19,11 +20,25 @@ class IdempotencyServiceImpl(
     ): IdempotentResult {
         val keyHash = sha256Hex(key.value)
         val requestHash = sha256Hex(requestBody)
-        return try {
-            store.runOrReplay(keyHash, requestHash, action)
-        } catch (race: IdempotencyRaceException) {
-            // The winner committed its response; a fresh transaction now replays it.
-            store.runOrReplay(keyHash, requestHash, action)
+        return runWithRetry(keyHash, requestHash, action)
+    }
+
+    @Suppress("SwallowedException") // race is recovered by single-shot replay in a fresh transaction, not an error
+    private fun runWithRetry(
+        keyHash: String,
+        requestHash: String,
+        action: (String) -> StoredResponse,
+    ): IdempotentResult {
+        var attempt = 0
+        while (true) {
+            try {
+                return store.runOrReplay(keyHash, requestHash, action)
+            } catch (lock: OptimisticLockingFailureException) {
+                attempt++
+                if (attempt >= MAX_ATTEMPTS) throw ConcurrencyConflictException(lock)
+            } catch (race: IdempotencyRaceException) {
+                return store.runOrReplay(keyHash, requestHash, action)
+            }
         }
     }
 
@@ -32,4 +47,8 @@ class IdempotencyServiceImpl(
             .getInstance("SHA-256")
             .digest(value.toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
+
+    companion object {
+        const val MAX_ATTEMPTS = 3
+    }
 }
