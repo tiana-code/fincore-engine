@@ -6,4 +6,7 @@ package com.fincore.ledger.domain.enum
 enum class EntryDirection {
     DEBIT,
     CREDIT,
+    ;
+
+    fun opposite(): EntryDirection = if (this == DEBIT) CREDIT else DEBIT
 }

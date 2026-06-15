@@ -21,7 +21,9 @@ class IdempotencyFilter(
     private val objectMapper: ObjectMapper,
 ) : OncePerRequestFilter() {
     override fun shouldNotFilter(request: HttpServletRequest): Boolean =
-        request.method != HttpMethod.POST.name() || request.requestURI !in GUARDED_PATHS
+        request.method != HttpMethod.POST.name() || !isGuarded(request.requestURI)
+
+    private fun isGuarded(uri: String): Boolean = uri in GUARDED_PATHS || REVERSE_PATH.matches(uri)
 
     override fun doFilterInternal(
         request: HttpServletRequest,
@@ -61,5 +63,6 @@ class IdempotencyFilter(
 
     private companion object {
         val GUARDED_PATHS = setOf("/v1/accounts", "/v1/transactions")
+        val REVERSE_PATH = Regex("/v1/transactions/[^/]+/reverse")
     }
 }

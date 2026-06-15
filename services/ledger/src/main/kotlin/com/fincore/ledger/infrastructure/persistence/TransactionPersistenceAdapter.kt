@@ -7,6 +7,7 @@ import com.fincore.ledger.domain.Transaction
 import com.fincore.ledger.domain.enum.TransactionStatus
 import org.springframework.stereotype.Component
 import java.time.Instant
+import java.util.UUID
 
 // Hand-written domain aggregate -> rows (issue #33 deferral): a Transaction maps to one
 // transactions row plus N entries rows that share the post instant.
@@ -16,13 +17,14 @@ class TransactionPersistenceAdapter {
         transaction: Transaction,
         actor: String,
         postedAt: Instant,
+        reversesId: UUID? = null,
     ): TransactionEntity =
         TransactionEntity(
             id = transaction.id.value,
             reference = transaction.reference,
             description = transaction.description,
             status = TransactionStatus.POSTED,
-            reversesId = null,
+            reversesId = reversesId,
             metadata = EMPTY_JSON,
             postedAt = postedAt,
             createdAt = postedAt,
