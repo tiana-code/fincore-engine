@@ -7,13 +7,17 @@ import com.fincore.core.AccountId
 import com.fincore.core.Currency
 import com.fincore.ledger.api.dto.request.CreateAccountRequest
 import com.fincore.ledger.api.dto.request.PostTransactionRequest
+import com.fincore.ledger.api.dto.response.AccountEntryResponse
 import com.fincore.ledger.api.dto.response.AccountResponse
 import com.fincore.ledger.api.dto.response.BalanceResponse
+import com.fincore.ledger.api.dto.response.EntryPageResponse
 import com.fincore.ledger.api.dto.response.EntryResponse
 import com.fincore.ledger.api.dto.response.PageResponse
 import com.fincore.ledger.api.dto.response.TransactionDetailResponse
 import com.fincore.ledger.api.dto.response.TransactionResponse
 import com.fincore.ledger.application.AccountBalance
+import com.fincore.ledger.application.AccountEntry
+import com.fincore.ledger.application.AccountEntryPage
 import com.fincore.ledger.application.AccountPage
 import com.fincore.ledger.application.CreateAccountCommand
 import com.fincore.ledger.application.EntryLine
@@ -121,6 +125,22 @@ class LedgerApiMapper {
             direction = entry.direction,
             amount = entry.amount,
             currency = entry.currency,
+        )
+
+    fun toResponse(entry: AccountEntry): AccountEntryResponse =
+        AccountEntryResponse(
+            id = entry.id.toString(),
+            transactionId = entry.transactionId.toString(),
+            direction = entry.direction,
+            amount = entry.amount,
+            currency = entry.currency,
+            postedAt = entry.postedAt,
+        )
+
+    fun toPageResponse(page: AccountEntryPage): EntryPageResponse =
+        EntryPageResponse(
+            items = page.items.map(::toResponse),
+            nextCursor = page.nextCursor,
         )
 
     fun toPageResponse(page: TransactionPage): PageResponse<TransactionResponse> =

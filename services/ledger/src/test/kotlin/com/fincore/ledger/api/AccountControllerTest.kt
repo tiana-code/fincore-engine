@@ -5,19 +5,25 @@ package com.fincore.ledger.api
 
 import com.fincore.core.AccountId
 import com.fincore.core.Currency
+import com.fincore.core.EntryId
 import com.fincore.core.Money
+import com.fincore.core.TransactionId
 import com.fincore.ledger.api.idempotency.IdempotencyAttributes
 import com.fincore.ledger.api.idempotency.IdempotencyFilter
 import com.fincore.ledger.api.mapper.LedgerApiMapper
 import com.fincore.ledger.application.AccountBalance
+import com.fincore.ledger.application.AccountEntry
+import com.fincore.ledger.application.AccountEntryPage
 import com.fincore.ledger.application.AccountPage
 import com.fincore.ledger.application.AccountService
 import com.fincore.ledger.application.BalanceService
 import com.fincore.ledger.application.CreateAccountCommand
+import com.fincore.ledger.application.EntryQueryService
 import com.fincore.ledger.application.IdempotentResult
 import com.fincore.ledger.config.SecurityConfig
 import com.fincore.ledger.domain.Account
 import com.fincore.ledger.domain.enum.AccountType
+import com.fincore.ledger.domain.enum.EntryDirection
 import com.fincore.ledger.domain.exception.AccountNotFoundException
 import com.fincore.ledger.domain.exception.IdempotencyConflictException
 import io.kotest.matchers.shouldBe
@@ -55,6 +61,7 @@ class AccountControllerTest(
     @Autowired private val mockMvc: MockMvc,
     @Autowired private val accountService: AccountService,
     @Autowired private val balanceService: BalanceService,
+    @Autowired private val entryQueryService: EntryQueryService,
     @Autowired private val idempotencyService: FakeIdempotencyService,
 ) {
     private val key = "k".repeat(40)
@@ -65,6 +72,8 @@ class AccountControllerTest(
 
         @Bean fun balanceService(): BalanceService = mockk()
 
+        @Bean fun entryQueryService(): EntryQueryService = mockk()
+
         @Bean fun idempotencyService(): FakeIdempotencyService = FakeIdempotencyService()
 
         @Bean fun jwtDecoder(): JwtDecoder = mockk()
@@ -73,7 +82,7 @@ class AccountControllerTest(
     @BeforeEach
     fun resetMocks() {
         idempotencyService.reset()
-        clearMocks(accountService, balanceService)
+        clearMocks(accountService, balanceService, entryQueryService)
     }
 
     @Test
@@ -239,5 +248,75 @@ class AccountControllerTest(
     @Test
     fun `should reject an unauthenticated list request with 401`() {
         mockMvc.perform(get("/v1/accounts")).andExpect(status().isUnauthorized)
+    }
+
+    private fun entry() =
+        AccountEntry(
+            EntryId.generate(),
+            TransactionId.generate(),
+            EntryDirection.DEBIT,
+            BigDecimal("100.00"),
+            "EUR",
+            Instant.parse("2026-06-13T10:00:00Z"),
+        )
+
+    @Test
+    fun `should list account entries with prefixed ids, decimal amounts and a next cursor`() {
+        every { entryQueryService.listAccountEntries(any(), any(), any(), any(), any()) } returns
+            AccountEntryPage(listOf(entry()), "Y3Vyc29y")
+
+        mockMvc
+            .perform(get("/v1/accounts/${AccountId.generate()}/entries").with(jwt()))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.items[0].id").value(matchesPattern("^ent_[0-9A-HJKMNP-TV-Z]{26}$")))
+            .andExpect(jsonPath("$.items[0].transactionId").value(matchesPattern("^tx_[0-9A-HJKMNP-TV-Z]{26}$")))
+            .andExpect(jsonPath("$.items[0].amount").value("100.00"))
+            .andExpect(jsonPath("$.items[0].direction").value("DEBIT"))
+            .andExpect(jsonPath("$.nextCursor").value("Y3Vyc29y"))
+    }
+
+    @Test
+    fun `should return 400 for a malformed account id on the entries endpoint`() {
+        mockMvc
+            .perform(get("/v1/accounts/acc_zzz/entries").with(jwt()))
+            .andExpect(status().isBadRequest)
+
+        verify(exactly = 0) { entryQueryService.listAccountEntries(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `should return 400 for a malformed from timestamp`() {
+        mockMvc
+            .perform(get("/v1/accounts/${AccountId.generate()}/entries?from=not-a-date").with(jwt()))
+            .andExpect(status().isBadRequest)
+
+        verify(exactly = 0) { entryQueryService.listAccountEntries(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `should map an entries range violation to 400`() {
+        every { entryQueryService.listAccountEntries(any(), any(), any(), any(), any()) } throws
+            IllegalArgumentException("range must span at most 90 days")
+
+        mockMvc
+            .perform(get("/v1/accounts/${AccountId.generate()}/entries?limit=300").with(jwt()))
+            .andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `should map a missing account to 404 on the entries endpoint`() {
+        every { entryQueryService.listAccountEntries(any(), any(), any(), any(), any()) } throws
+            AccountNotFoundException(AccountId.generate())
+
+        mockMvc
+            .perform(get("/v1/accounts/${AccountId.generate()}/entries").with(jwt()))
+            .andExpect(status().isNotFound)
+    }
+
+    @Test
+    fun `should reject an unauthenticated entries request with 401`() {
+        mockMvc
+            .perform(get("/v1/accounts/${AccountId.generate()}/entries"))
+            .andExpect(status().isUnauthorized)
     }
 }
