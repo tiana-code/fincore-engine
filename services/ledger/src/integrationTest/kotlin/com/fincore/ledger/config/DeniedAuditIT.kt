@@ -31,6 +31,7 @@ import org.springframework.security.web.SecurityFilterChain
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import java.time.Instant
+import java.util.UUID
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ExtendWith(PostgresContainerExtension::class)
@@ -71,7 +72,7 @@ class DeniedAuditIT(
 
     @Test
     fun `should write a single committed DENIED row when an authenticated write is forbidden`() {
-        val correlationId = "corr-denied-${unique()}"
+        val correlationId = UUID.randomUUID().toString()
 
         val response = post(token = "valid-token", correlationId = correlationId)
 
@@ -88,7 +89,7 @@ class DeniedAuditIT(
 
     @Test
     fun `should write no audit row when an unauthenticated write is rejected`() {
-        val correlationId = "corr-unauth-${unique()}"
+        val correlationId = UUID.randomUUID().toString()
 
         val response = post(token = null, correlationId = correlationId)
 

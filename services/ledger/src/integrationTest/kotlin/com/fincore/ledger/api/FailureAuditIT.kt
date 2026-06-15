@@ -3,7 +3,7 @@
 
 package com.fincore.ledger.api
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.fincore.core.AccountId
 import com.fincore.core.TransactionId
 import com.fincore.ledger.api.idempotency.IdempotencyAttributes
 import com.fincore.ledger.api.observability.CorrelationIdAttributes
@@ -32,13 +32,13 @@ import org.springframework.security.oauth2.jwt.JwtDecoder
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import java.time.Instant
+import java.util.UUID
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ExtendWith(PostgresContainerExtension::class)
 @Import(FailureAuditIT.TestSecurity::class)
 class FailureAuditIT(
     @Autowired private val rest: TestRestTemplate,
-    @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val auditRepository: AuditEventRepository,
     @Autowired private val outboxRepository: OutboxEventRepository,
 ) {
@@ -64,13 +64,11 @@ class FailureAuditIT(
 
     @Test
     fun `should write a single committed FAILURE row with request hash for an unbalanced post`() {
-        val debit = createAccount("Failure debit")
-        val credit = createAccount("Failure credit")
-        val correlationId = "corr-fail-post-${unique()}"
+        val correlationId = UUID.randomUUID().toString()
         val body =
-            """{"reference":"ref-${unique()}","description":null,"currency":"USD",""" +
-                """"entries":[{"accountId":"$debit","direction":"DEBIT","amount":"100.00"},""" +
-                """{"accountId":"$credit","direction":"CREDIT","amount":"-50.00"}]}"""
+            """{"reference":"ref-${unique()}","currency":"USD","entries":[""" +
+                """{"accountId":"${AccountId.generate()}","direction":"DEBIT","amount":"100"},""" +
+                """{"accountId":"${AccountId.generate()}","direction":"CREDIT","amount":"50"}]}"""
 
         val response = post("/v1/transactions", body, correlationId)
 
@@ -87,7 +85,7 @@ class FailureAuditIT(
 
     @Test
     fun `should write a single FAILURE row with the original transaction id for a reverse of an unknown transaction`() {
-        val correlationId = "corr-fail-reverse-${unique()}"
+        val correlationId = UUID.randomUUID().toString()
         val unknownId = TransactionId.generate().toString()
         val body = "{}"
 
@@ -105,18 +103,12 @@ class FailureAuditIT(
 
     @Test
     fun `should not write any audit row for a validation failure`() {
-        val correlationId = "corr-fail-validation-${unique()}"
+        val correlationId = UUID.randomUUID().toString()
 
         val response = post("/v1/transactions", """{"currency":""}""", correlationId)
 
         response.statusCode.value() shouldBe 400
         auditRepository.findAll().filter { it.correlationId == correlationId } shouldHaveSize 0
-    }
-
-    private fun createAccount(name: String): String {
-        val body = """{"name":"$name","type":"USER_WALLET","currency":"USD"}"""
-        val response = post("/v1/accounts", body, "corr-setup-${unique()}")
-        return objectMapper.readTree(response.body).get("id").asText()
     }
 
     private fun post(
@@ -130,6 +122,7 @@ class FailureAuditIT(
             body,
             HttpHeaders().apply {
                 contentType = MediaType.APPLICATION_JSON
+                setBearerAuth("failure-audit-it-token")
                 set(IdempotencyAttributes.HEADER, idemKey())
                 set(CorrelationIdAttributes.HEADER, correlationId)
             },
@@ -140,6 +133,7 @@ class FailureAuditIT(
     private companion object {
         const val ACTOR = "failure-audit-it"
         const val EXPIRY_SECONDS = 3600L
+        const val KEY_LENGTH = 40
         private var counter = 0
 
         fun unique(): Int = ++counter
@@ -148,8 +142,6 @@ class FailureAuditIT(
             val suffix = unique().toString()
             return "k".repeat(KEY_LENGTH - suffix.length) + suffix
         }
-
-        private const val KEY_LENGTH = 40
 
         @JvmStatic
         @DynamicPropertySource
