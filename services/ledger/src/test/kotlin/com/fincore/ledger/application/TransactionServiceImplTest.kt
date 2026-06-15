@@ -8,7 +8,6 @@ import com.fincore.core.Currency
 import com.fincore.core.TransactionId
 import com.fincore.ledger.domain.enum.EntryDirection
 import com.fincore.ledger.domain.enum.TransactionStatus
-import com.fincore.ledger.domain.exception.ConcurrencyConflictException
 import com.fincore.ledger.domain.exception.TransactionNotFoundException
 import com.fincore.ledger.infrastructure.persistence.EntryEntity
 import com.fincore.ledger.infrastructure.persistence.EntryKey
@@ -22,7 +21,6 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import org.junit.jupiter.api.Test
-import org.springframework.dao.OptimisticLockingFailureException
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -57,29 +55,8 @@ class TransactionServiceImplTest {
         every { poster.post(command) } returns PostedTransaction(TransactionId.generate(), "ref-1", TransactionStatus.POSTED, Instant.now())
 
         service.post(command).reference shouldBe "ref-1"
-    }
 
-    @Test
-    fun `should retry on an optimistic lock failure then succeed`() {
-        var calls = 0
-        every { poster.post(command) } answers {
-            calls++
-            if (calls < 2) throw OptimisticLockingFailureException("version conflict")
-            PostedTransaction(TransactionId.generate(), "ref-1", TransactionStatus.POSTED, Instant.now())
-        }
-
-        service.post(command)
-
-        verify(exactly = 2) { poster.post(command) }
-    }
-
-    @Test
-    fun `should fail with a concurrency conflict after three attempts`() {
-        every { poster.post(command) } throws OptimisticLockingFailureException("version conflict")
-
-        shouldThrow<ConcurrencyConflictException> { service.post(command) }
-
-        verify(exactly = 3) { poster.post(command) }
+        verify(exactly = 1) { poster.post(command) }
     }
 
     @Test
@@ -91,21 +68,6 @@ class TransactionServiceImplTest {
         service.reverse(id, "op", "corr-1", null, null) shouldBe compensating
 
         verify(exactly = 1) { poster.postReversal(id, "op", "corr-1", null, null) }
-    }
-
-    @Test
-    fun `should retry reverse on an optimistic lock failure then succeed`() {
-        val id = TransactionId.generate()
-        var calls = 0
-        every { poster.postReversal(id, "op", null, null, null) } answers {
-            calls++
-            if (calls < 2) throw OptimisticLockingFailureException("version conflict")
-            PostedTransaction(TransactionId.generate(), "reversal-of-$id", TransactionStatus.POSTED, Instant.now())
-        }
-
-        service.reverse(id, "op", null, null, null)
-
-        verify(exactly = 2) { poster.postReversal(id, "op", null, null, null) }
     }
 
     private val postedAt = Instant.parse("2026-06-12T08:00:00Z")

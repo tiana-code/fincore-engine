@@ -5,13 +5,11 @@ package com.fincore.ledger.application
 
 import com.fincore.core.AccountId
 import com.fincore.core.TransactionId
-import com.fincore.ledger.domain.exception.ConcurrencyConflictException
 import com.fincore.ledger.domain.exception.TransactionNotFoundException
 import com.fincore.ledger.infrastructure.persistence.EntryEntity
 import com.fincore.ledger.infrastructure.persistence.EntryRepository
 import com.fincore.ledger.infrastructure.persistence.TransactionEntity
 import com.fincore.ledger.infrastructure.persistence.TransactionRepository
-import org.springframework.dao.OptimisticLockingFailureException
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
@@ -23,7 +21,7 @@ class TransactionServiceImpl(
     private val transactionRepository: TransactionRepository,
     private val entryRepository: EntryRepository,
 ) : TransactionService {
-    override fun post(command: PostTransactionCommand): PostedTransaction = withOptimisticRetry { poster.post(command) }
+    override fun post(command: PostTransactionCommand): PostedTransaction = poster.post(command)
 
     override fun reverse(
         id: TransactionId,
@@ -31,7 +29,7 @@ class TransactionServiceImpl(
         correlationId: String?,
         reason: String?,
         requestHash: String?,
-    ): PostedTransaction = withOptimisticRetry { poster.postReversal(id, actor, correlationId, reason, requestHash) }
+    ): PostedTransaction = poster.postReversal(id, actor, correlationId, reason, requestHash)
 
     @Transactional(readOnly = true)
     override fun get(id: TransactionId): TransactionDetail {
@@ -57,20 +55,6 @@ class TransactionServiceImpl(
         )
     }
 
-    private fun <T> withOptimisticRetry(action: () -> T): T {
-        var attempt = 0
-        while (true) {
-            try {
-                return action()
-            } catch (lock: OptimisticLockingFailureException) {
-                attempt++
-                if (attempt >= MAX_ATTEMPTS) {
-                    throw ConcurrencyConflictException(lock)
-                }
-            }
-        }
-    }
-
     private fun toSummary(entity: TransactionEntity): TransactionSummary =
         TransactionSummary(TransactionId(entity.id), entity.reference, entity.status, entity.postedAt)
 
@@ -89,8 +73,4 @@ class TransactionServiceImpl(
         )
 
     private fun toView(entry: EntryEntity): EntryView = EntryView(AccountId(entry.accountId), entry.direction, entry.amount, entry.currency)
-
-    private companion object {
-        const val MAX_ATTEMPTS = 3
-    }
 }
