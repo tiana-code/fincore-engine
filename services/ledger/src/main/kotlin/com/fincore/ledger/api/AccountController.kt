@@ -9,11 +9,13 @@ import com.fincore.core.IdempotencyKey
 import com.fincore.ledger.api.dto.request.CreateAccountRequest
 import com.fincore.ledger.api.dto.response.AccountResponse
 import com.fincore.ledger.api.dto.response.BalanceResponse
+import com.fincore.ledger.api.dto.response.EntryPageResponse
 import com.fincore.ledger.api.dto.response.PageResponse
 import com.fincore.ledger.api.idempotency.IdempotencyAttributes
 import com.fincore.ledger.api.mapper.LedgerApiMapper
 import com.fincore.ledger.application.AccountService
 import com.fincore.ledger.application.BalanceService
+import com.fincore.ledger.application.EntryQueryService
 import com.fincore.ledger.application.IdempotencyService
 import com.fincore.ledger.application.IdempotentResult
 import com.fincore.ledger.application.StoredResponse
@@ -32,12 +34,14 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.net.URI
+import java.time.Instant
 
 @RestController
 @RequestMapping("/v1/accounts")
 class AccountController(
     private val accountService: AccountService,
     private val balanceService: BalanceService,
+    private val entryQueryService: EntryQueryService,
     private val idempotencyService: IdempotencyService,
     private val mapper: LedgerApiMapper,
     private val objectMapper: ObjectMapper,
@@ -82,6 +86,28 @@ class AccountController(
         val account = accountService.get(accountId)
         return mapper.toResponse(balanceService.current(accountId, account.currency))
     }
+
+    @GetMapping("/{id}/entries")
+    fun entries(
+        @PathVariable id: String,
+        @RequestParam(required = false) from: String?,
+        @RequestParam(required = false) to: String?,
+        @RequestParam(required = false) cursor: String?,
+        @RequestParam(defaultValue = "50") limit: Int,
+    ): EntryPageResponse {
+        val page =
+            entryQueryService.listAccountEntries(
+                AccountId.fromString(id),
+                parseInstant(from),
+                parseInstant(to),
+                cursor,
+                limit,
+            )
+        return mapper.toPageResponse(page)
+    }
+
+    private fun parseInstant(raw: String?): Instant? =
+        raw?.let { runCatching { Instant.parse(it) }.getOrElse { throw IllegalArgumentException("invalid timestamp: $raw") } }
 
     private fun respond(
         result: IdempotentResult,

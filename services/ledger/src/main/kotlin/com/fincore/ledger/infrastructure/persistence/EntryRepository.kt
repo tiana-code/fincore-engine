@@ -3,6 +3,7 @@
 
 package com.fincore.ledger.infrastructure.persistence
 
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -24,5 +25,21 @@ interface EntryRepository : JpaRepository<EntryEntity, EntryKey> {
     @Query("select e from EntryEntity e where e.transactionId = :transactionId order by e.key.id")
     fun findByTransactionId(
         @Param("transactionId") transactionId: UUID,
+    ): List<EntryEntity>
+
+    @Query(
+        "select e from EntryEntity e where e.accountId = :accountId " +
+            "and e.postedAt >= :from and e.postedAt <= :to " +
+            "and (:cursorPostedAt is null or e.postedAt < :cursorPostedAt " +
+            "or (e.postedAt = :cursorPostedAt and e.key.id < :cursorId)) " +
+            "order by e.postedAt desc, e.key.id desc",
+    )
+    fun findAccountEntries(
+        @Param("accountId") accountId: UUID,
+        @Param("from") from: Instant,
+        @Param("to") to: Instant,
+        @Param("cursorPostedAt") cursorPostedAt: Instant?,
+        @Param("cursorId") cursorId: UUID?,
+        pageable: Pageable,
     ): List<EntryEntity>
 }
