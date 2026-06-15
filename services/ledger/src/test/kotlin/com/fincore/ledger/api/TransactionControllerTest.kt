@@ -8,8 +8,10 @@ import com.fincore.core.TransactionId
 import com.fincore.ledger.api.idempotency.IdempotencyAttributes
 import com.fincore.ledger.api.idempotency.IdempotencyFilter
 import com.fincore.ledger.api.mapper.LedgerApiMapper
+import com.fincore.ledger.application.EntryView
 import com.fincore.ledger.application.PostTransactionCommand
 import com.fincore.ledger.application.PostedTransaction
+import com.fincore.ledger.application.TransactionDetail
 import com.fincore.ledger.application.TransactionPage
 import com.fincore.ledger.application.TransactionService
 import com.fincore.ledger.application.TransactionSummary
@@ -21,6 +23,8 @@ import com.fincore.ledger.domain.exception.ConcurrencyConflictException
 import com.fincore.ledger.domain.exception.CurrencyConsistencyViolationException
 import com.fincore.ledger.domain.exception.DoubleEntryViolationException
 import com.fincore.ledger.domain.exception.DuplicateTransactionException
+import com.fincore.ledger.domain.exception.TransactionAlreadyReversedException
+import com.fincore.ledger.domain.exception.TransactionNotFoundException
 import io.kotest.matchers.shouldBe
 import io.mockk.clearMocks
 import io.mockk.every
@@ -223,5 +227,106 @@ class TransactionControllerTest(
     @Test
     fun `should reject an unauthenticated list request with 401`() {
         mockMvc.perform(get("/v1/transactions")).andExpect(status().isUnauthorized)
+    }
+
+    @Test
+    fun `should return a transaction detail with entries as decimal strings and prefixed ids`() {
+        val txId = TransactionId.generate()
+        every { transactionService.get(any()) } returns
+            TransactionDetail(
+                id = txId,
+                reference = "tx-ref-1",
+                description = "a tx",
+                status = TransactionStatus.POSTED,
+                reversesId = null,
+                postedAt = Instant.parse("2026-06-13T10:00:00Z"),
+                entries =
+                    listOf(
+                        EntryView(accountA, EntryDirection.DEBIT, BigDecimal("100.00"), "EUR"),
+                        EntryView(accountB, EntryDirection.CREDIT, BigDecimal("-100.00"), "EUR"),
+                    ),
+            )
+
+        mockMvc
+            .perform(get("/v1/transactions/$txId").with(jwt()))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.id").value(txId.toString()))
+            .andExpect(jsonPath("$.id").value(matchesPattern("^tx_[0-9A-HJKMNP-TV-Z]{26}$")))
+            .andExpect(jsonPath("$.status").value("POSTED"))
+            .andExpect(jsonPath("$.entries.length()").value(2))
+            .andExpect(jsonPath("$.entries[0].accountId").value(accountA.toString()))
+            .andExpect(jsonPath("$.entries[0].accountId").value(matchesPattern("^acc_[0-9A-HJKMNP-TV-Z]{26}$")))
+            .andExpect(jsonPath("$.entries[0].amount").value("100.00"))
+            .andExpect(jsonPath("$.entries[1].amount").value("-100.00"))
+    }
+
+    @Test
+    fun `should return 404 when the transaction is not found`() {
+        every { transactionService.get(any()) } throws TransactionNotFoundException(TransactionId.generate())
+
+        mockMvc
+            .perform(get("/v1/transactions/${TransactionId.generate()}").with(jwt()))
+            .andExpect(status().isNotFound)
+            .andExpect(jsonPath("$.status").value(404))
+    }
+
+    @Test
+    fun `should return 400 for a malformed transaction id without calling the service`() {
+        mockMvc
+            .perform(get("/v1/transactions/tx_zzz").with(jwt()))
+            .andExpect(status().isBadRequest)
+
+        verify(exactly = 0) { transactionService.get(any()) }
+    }
+
+    private fun reverse(
+        id: String,
+        withKey: Boolean = true,
+        authenticated: Boolean = true,
+    ) = mockMvc.perform(
+        post("/v1/transactions/$id/reverse")
+            .apply { if (authenticated) with(jwt().jwt { it.subject("user-123") }) }
+            .apply { if (withKey) header(IdempotencyAttributes.HEADER, key) }
+            .contentType(MediaType.APPLICATION_JSON),
+    )
+
+    @Test
+    fun `should reverse a transaction and return 201 with location and the compensating transaction`() {
+        val compensatingId = TransactionId.generate()
+        every { transactionService.reverse(any(), "user-123", any()) } returns
+            PostedTransaction(compensatingId, "reversal-of-tx", TransactionStatus.POSTED, Instant.parse("2026-06-13T10:00:00Z"))
+
+        reverse(TransactionId.generate().toString())
+            .andExpect(status().isCreated)
+            .andExpect(header().string("Location", "/v1/transactions/$compensatingId"))
+            .andExpect(jsonPath("$.id").value(compensatingId.toString()))
+            .andExpect(jsonPath("$.status").value("POSTED"))
+    }
+
+    @Test
+    fun `should return 404 when reversing an unknown transaction`() {
+        every { transactionService.reverse(any(), any(), any()) } throws TransactionNotFoundException(TransactionId.generate())
+
+        reverse(TransactionId.generate().toString()).andExpect(status().isNotFound)
+    }
+
+    @Test
+    fun `should return 409 when reversing an already reversed transaction`() {
+        every { transactionService.reverse(any(), any(), any()) } throws
+            TransactionAlreadyReversedException(TransactionId.generate())
+
+        reverse(TransactionId.generate().toString()).andExpect(status().isConflict)
+    }
+
+    @Test
+    fun `should reject a reverse without an idempotency key with 400`() {
+        reverse(TransactionId.generate().toString(), withKey = false).andExpect(status().isBadRequest)
+
+        verify(exactly = 0) { transactionService.reverse(any(), any(), any()) }
+    }
+
+    @Test
+    fun `should reject an unauthenticated reverse with 401`() {
+        reverse(TransactionId.generate().toString(), authenticated = false).andExpect(status().isUnauthorized)
     }
 }

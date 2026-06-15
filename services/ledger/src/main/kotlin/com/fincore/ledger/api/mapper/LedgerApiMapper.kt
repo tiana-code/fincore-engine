@@ -9,14 +9,18 @@ import com.fincore.ledger.api.dto.request.CreateAccountRequest
 import com.fincore.ledger.api.dto.request.PostTransactionRequest
 import com.fincore.ledger.api.dto.response.AccountResponse
 import com.fincore.ledger.api.dto.response.BalanceResponse
+import com.fincore.ledger.api.dto.response.EntryResponse
 import com.fincore.ledger.api.dto.response.PageResponse
+import com.fincore.ledger.api.dto.response.TransactionDetailResponse
 import com.fincore.ledger.api.dto.response.TransactionResponse
 import com.fincore.ledger.application.AccountBalance
 import com.fincore.ledger.application.AccountPage
 import com.fincore.ledger.application.CreateAccountCommand
 import com.fincore.ledger.application.EntryLine
+import com.fincore.ledger.application.EntryView
 import com.fincore.ledger.application.PostTransactionCommand
 import com.fincore.ledger.application.PostedTransaction
+import com.fincore.ledger.application.TransactionDetail
 import com.fincore.ledger.application.TransactionPage
 import com.fincore.ledger.application.TransactionSummary
 import com.fincore.ledger.domain.Account
@@ -98,6 +102,25 @@ class LedgerApiMapper {
             reference = summary.reference,
             status = summary.status,
             postedAt = summary.postedAt,
+        )
+
+    fun toDetailResponse(detail: TransactionDetail): TransactionDetailResponse =
+        TransactionDetailResponse(
+            id = detail.id.toString(),
+            reference = detail.reference,
+            description = detail.description,
+            status = detail.status,
+            reversesId = detail.reversesId?.toString(),
+            postedAt = detail.postedAt,
+            entries = detail.entries.map(::toResponse),
+        )
+
+    fun toResponse(entry: EntryView): EntryResponse =
+        EntryResponse(
+            accountId = entry.accountId.toString(),
+            direction = entry.direction,
+            amount = entry.amount,
+            currency = entry.currency,
         )
 
     fun toPageResponse(page: TransactionPage): PageResponse<TransactionResponse> =

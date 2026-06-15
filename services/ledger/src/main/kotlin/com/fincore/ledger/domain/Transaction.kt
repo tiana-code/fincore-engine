@@ -17,13 +17,12 @@ class Transaction(
     val description: String?,
     val entries: List<Entry>,
     val currency: Currency,
+    val status: TransactionStatus = TransactionStatus.POSTED,
 ) {
     companion object {
         private const val MIN_ENTRIES = 2
         private const val MAX_ENTRIES = 1000
     }
-
-    val status: TransactionStatus = TransactionStatus.POSTED
 
     init {
         validateEntryCount()

@@ -11,7 +11,9 @@ import com.fincore.ledger.api.dto.request.CreateAccountRequest
 import com.fincore.ledger.api.dto.request.EntryLineRequest
 import com.fincore.ledger.api.dto.request.PostTransactionRequest
 import com.fincore.ledger.application.AccountBalance
+import com.fincore.ledger.application.EntryView
 import com.fincore.ledger.application.PostedTransaction
+import com.fincore.ledger.application.TransactionDetail
 import com.fincore.ledger.domain.Account
 import com.fincore.ledger.domain.enum.AccountStatus
 import com.fincore.ledger.domain.enum.AccountType
@@ -89,5 +91,36 @@ class LedgerApiMapperTest {
     fun `should serialize transaction id as prefixed ulid`() {
         val posted = PostedTransaction(TransactionId.generate(), "ref-1", TransactionStatus.POSTED, java.time.Instant.now())
         mapper.toResponse(posted).id shouldStartWith "tx_"
+    }
+
+    @Test
+    fun `should map transaction detail with prefixed ids and full-precision entry amounts`() {
+        val txId = TransactionId.generate()
+        val reverses = TransactionId.generate()
+        val account = AccountId.generate()
+        val amount = BigDecimal("100.000000000000000001")
+        val detail =
+            TransactionDetail(
+                id = txId,
+                reference = "ref-7",
+                description = "a tx",
+                status = TransactionStatus.REVERSED,
+                reversesId = reverses,
+                postedAt = java.time.Instant.parse("2026-06-12T08:00:00Z"),
+                entries = listOf(EntryView(account, EntryDirection.DEBIT, amount, "USD")),
+            )
+
+        val response = mapper.toDetailResponse(detail)
+
+        response.id shouldBe txId.toString()
+        response.reversesId shouldBe reverses.toString()
+        response.status shouldBe TransactionStatus.REVERSED
+        response.entries.single().let {
+            it.accountId shouldBe account.toString()
+            it.accountId shouldStartWith "acc_"
+            it.direction shouldBe EntryDirection.DEBIT
+            it.amount.compareTo(amount) shouldBe 0
+            it.currency shouldBe "USD"
+        }
     }
 }

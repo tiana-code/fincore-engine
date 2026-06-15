@@ -10,14 +10,14 @@ import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 import jakarta.persistence.Id
 import jakarta.persistence.Table
-import org.hibernate.annotations.Immutable
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
 import java.time.Instant
 import java.util.UUID
 
+// Not @Immutable: Model (A) reversal flips `status` POSTED->REVERSED via a guarded update. Every other
+// column stays updatable = false so only `status` can ever change.
 @Entity
-@Immutable
 @Table(name = "transactions", schema = "ledger")
 @Suppress("LongParameterList")
 class TransactionEntity(

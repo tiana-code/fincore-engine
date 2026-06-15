@@ -10,6 +10,8 @@ import com.fincore.ledger.domain.exception.DomainException
 import com.fincore.ledger.domain.exception.DoubleEntryViolationException
 import com.fincore.ledger.domain.exception.DuplicateTransactionException
 import com.fincore.ledger.domain.exception.IdempotencyConflictException
+import com.fincore.ledger.domain.exception.TransactionAlreadyReversedException
+import com.fincore.ledger.domain.exception.TransactionNotFoundException
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -29,11 +31,23 @@ class GlobalExceptionHandler {
         request: HttpServletRequest,
     ): ProblemDetail = problem(HttpStatus.NOT_FOUND, "account not found", ex.message, request)
 
+    @ExceptionHandler(TransactionNotFoundException::class)
+    fun handleTransactionNotFound(
+        ex: TransactionNotFoundException,
+        request: HttpServletRequest,
+    ): ProblemDetail = problem(HttpStatus.NOT_FOUND, "transaction not found", ex.message, request)
+
     @ExceptionHandler(DuplicateTransactionException::class)
     fun handleDuplicateTransaction(
         ex: DuplicateTransactionException,
         request: HttpServletRequest,
     ): ProblemDetail = problem(HttpStatus.CONFLICT, "duplicate transaction reference", ex.message, request)
+
+    @ExceptionHandler(TransactionAlreadyReversedException::class)
+    fun handleTransactionAlreadyReversed(
+        ex: TransactionAlreadyReversedException,
+        request: HttpServletRequest,
+    ): ProblemDetail = problem(HttpStatus.CONFLICT, "transaction already reversed", ex.message, request)
 
     @ExceptionHandler(IdempotencyConflictException::class)
     fun handleIdempotencyConflict(

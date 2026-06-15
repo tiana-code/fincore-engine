@@ -7,18 +7,25 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fincore.core.AccountId
 import com.fincore.core.Currency
+import com.fincore.core.TransactionId
 import com.fincore.ledger.domain.enum.AccountStatus
 import com.fincore.ledger.domain.enum.AccountType
 import com.fincore.ledger.domain.enum.EntryDirection
+import com.fincore.ledger.domain.enum.TransactionStatus
 import com.fincore.ledger.domain.exception.AccountNotFoundException
 import com.fincore.ledger.domain.exception.DomainException
 import com.fincore.ledger.domain.exception.DoubleEntryViolationException
 import com.fincore.ledger.domain.exception.DuplicateTransactionException
+import com.fincore.ledger.domain.exception.TransactionAlreadyReversedException
+import com.fincore.ledger.domain.exception.TransactionNotFoundException
 import com.fincore.ledger.infrastructure.persistence.AccountBalanceRepository
 import com.fincore.ledger.infrastructure.persistence.AccountEntity
 import com.fincore.ledger.infrastructure.persistence.AccountRepository
+import com.fincore.ledger.infrastructure.persistence.EntryEntity
+import com.fincore.ledger.infrastructure.persistence.EntryKey
 import com.fincore.ledger.infrastructure.persistence.EntryRepository
 import com.fincore.ledger.infrastructure.persistence.OutboxEventRepository
+import com.fincore.ledger.infrastructure.persistence.TransactionEntity
 import com.fincore.ledger.infrastructure.persistence.TransactionPersistenceAdapter
 import com.fincore.ledger.infrastructure.persistence.TransactionRepository
 import io.kotest.assertions.throwables.shouldThrow
@@ -144,5 +151,66 @@ class TransactionPosterTest {
         shouldThrow<DuplicateTransactionException> { poster.post(command()) }
 
         verify(exactly = 0) { transactionRepository.saveAndFlush(any()) }
+    }
+
+    private fun transactionEntity(
+        id: UUID,
+        status: TransactionStatus,
+    ) = TransactionEntity(id, "ref-orig", null, status, null, "{}", now, now, "op")
+
+    private fun entryEntity(
+        account: UUID,
+        amount: BigDecimal,
+        direction: EntryDirection,
+        transactionId: UUID,
+    ) = EntryEntity(EntryKey(UUID.randomUUID(), now), transactionId, account, amount, "USD", direction, now)
+
+    @Test
+    fun `should post a compensating reversal that inverts entries and links and reverses the original`() {
+        val originalId = TransactionId.generate()
+        val original = transactionEntity(originalId.value, TransactionStatus.POSTED)
+        every { transactionRepository.findById(originalId.value) } returns Optional.of(original)
+        every { entryRepository.findByTransactionId(originalId.value) } returns
+            listOf(
+                entryEntity(accountA, BigDecimal("100.00"), EntryDirection.DEBIT, originalId.value),
+                entryEntity(accountB, BigDecimal("-100.00"), EntryDirection.CREDIT, originalId.value),
+            )
+        val txSlots = mutableListOf<TransactionEntity>()
+        val entrySlots = mutableListOf<EntryEntity>()
+        every { transactionRepository.saveAndFlush(capture(txSlots)) } answers { firstArg() }
+        every { entryRepository.saveAndFlush(capture(entrySlots)) } answers { firstArg() }
+        every { balanceRepository.findById(any()) } returns Optional.empty()
+        every { balanceRepository.saveAndFlush(any()) } answers { firstArg() }
+        every { outboxRepository.saveAndFlush(any()) } answers { firstArg() }
+
+        val result = poster.postReversal(originalId, "op", "corr-1")
+
+        result.reference shouldBe "reversal-of-$originalId"
+        original.status shouldBe TransactionStatus.REVERSED
+        txSlots.any { it.reversesId == originalId.value } shouldBe true
+        entrySlots[0].direction shouldBe EntryDirection.CREDIT
+        entrySlots[0].amount.compareTo(BigDecimal("-100.00")) shouldBe 0
+        entrySlots[1].direction shouldBe EntryDirection.DEBIT
+        entrySlots[1].amount.compareTo(BigDecimal("100.00")) shouldBe 0
+        verify(exactly = 1) { outboxRepository.saveAndFlush(any()) }
+    }
+
+    @Test
+    fun `should reject reversing a transaction that is not posted`() {
+        val originalId = TransactionId.generate()
+        every { transactionRepository.findById(originalId.value) } returns
+            Optional.of(transactionEntity(originalId.value, TransactionStatus.REVERSED))
+
+        shouldThrow<TransactionAlreadyReversedException> { poster.postReversal(originalId, "op", null) }
+
+        verify(exactly = 0) { entryRepository.saveAndFlush(any()) }
+    }
+
+    @Test
+    fun `should reject reversing an unknown transaction`() {
+        val originalId = TransactionId.generate()
+        every { transactionRepository.findById(originalId.value) } returns Optional.empty()
+
+        shouldThrow<TransactionNotFoundException> { poster.postReversal(originalId, "op", null) }
     }
 }

@@ -20,4 +20,9 @@ interface EntryRepository : JpaRepository<EntryEntity, EntryKey> {
         @Param("currency") currency: String,
         @Param("asOf") asOf: Instant,
     ): BigDecimal
+
+    @Query("select e from EntryEntity e where e.transactionId = :transactionId order by e.key.id")
+    fun findByTransactionId(
+        @Param("transactionId") transactionId: UUID,
+    ): List<EntryEntity>
 }
