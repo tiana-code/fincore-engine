@@ -3,7 +3,6 @@
 
 package com.fincore.ledger.application
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.fincore.core.AccountId
 import com.fincore.core.Currency
 import com.fincore.core.EntryId
@@ -11,7 +10,6 @@ import com.fincore.core.Money
 import com.fincore.core.TransactionId
 import com.fincore.events.EventEnvelope
 import com.fincore.events.LedgerEvents
-import com.fincore.events.OutboxStatus
 import com.fincore.ledger.application.event.EntryLinePayload
 import com.fincore.ledger.application.event.TransactionPostedPayload
 import com.fincore.ledger.domain.Entry
@@ -23,14 +21,13 @@ import com.fincore.ledger.domain.exception.DomainException
 import com.fincore.ledger.domain.exception.DuplicateTransactionException
 import com.fincore.ledger.domain.exception.TransactionAlreadyReversedException
 import com.fincore.ledger.domain.exception.TransactionNotFoundException
+import com.fincore.ledger.infrastructure.outbox.OutboxEventPublisher
 import com.fincore.ledger.infrastructure.persistence.AccountBalanceEntity
 import com.fincore.ledger.infrastructure.persistence.AccountBalanceKey
 import com.fincore.ledger.infrastructure.persistence.AccountBalanceRepository
 import com.fincore.ledger.infrastructure.persistence.AccountRepository
 import com.fincore.ledger.infrastructure.persistence.EntryEntity
 import com.fincore.ledger.infrastructure.persistence.EntryRepository
-import com.fincore.ledger.infrastructure.persistence.OutboxEventEntity
-import com.fincore.ledger.infrastructure.persistence.OutboxEventRepository
 import com.fincore.ledger.infrastructure.persistence.TransactionPersistenceAdapter
 import com.fincore.ledger.infrastructure.persistence.TransactionRepository
 import org.springframework.dao.DataIntegrityViolationException
@@ -45,9 +42,8 @@ class TransactionPoster(
     private val transactionRepository: TransactionRepository,
     private val entryRepository: EntryRepository,
     private val balanceRepository: AccountBalanceRepository,
-    private val outboxRepository: OutboxEventRepository,
+    private val outboxEventPublisher: OutboxEventPublisher,
     private val adapter: TransactionPersistenceAdapter,
-    private val objectMapper: ObjectMapper,
 ) {
     @Transactional
     fun post(command: PostTransactionCommand): PostedTransaction {
@@ -181,19 +177,12 @@ class TransactionPoster(
                 subject = transaction.id.toString(),
                 correlationId = correlationId,
             )
-        outboxRepository.saveAndFlush(
-            OutboxEventEntity(
-                id = UUID.randomUUID(),
-                aggregateType = AGGREGATE_TYPE,
-                aggregateId = transaction.id.toString(),
-                eventType = LedgerEvents.TransactionPosted.fullType,
-                payload = objectMapper.writeValueAsString(envelope),
-                status = OutboxStatus.PENDING,
-                createdAt = postedAt,
-                publishedAt = null,
-                attempts = 0,
-                lastError = null,
-            ),
+        outboxEventPublisher.publish(
+            envelope,
+            AGGREGATE_TYPE,
+            transaction.id.toString(),
+            LedgerEvents.TransactionPosted.fullType,
+            postedAt,
         )
     }
 

@@ -12,6 +12,7 @@ import com.fincore.ledger.domain.enum.AccountType
 import com.fincore.ledger.domain.enum.EntryDirection
 import com.fincore.ledger.domain.enum.TransactionStatus
 import com.fincore.ledger.domain.exception.TransactionAlreadyReversedException
+import com.fincore.ledger.infrastructure.outbox.OutboxEventPublisherImpl
 import com.fincore.ledger.infrastructure.persistence.AccountPersistenceAdapter
 import com.fincore.ledger.infrastructure.persistence.OutboxEventRepository
 import com.fincore.ledger.infrastructure.persistence.TransactionPersistenceAdapter
@@ -41,6 +42,7 @@ import java.math.BigDecimal
     AccountServiceImpl::class,
     AccountPersistenceAdapter::class,
     TransactionReversalIT.JacksonConfig::class,
+    OutboxEventPublisherImpl::class,
 )
 class TransactionReversalIT(
     @Autowired private val transactionService: TransactionService,
