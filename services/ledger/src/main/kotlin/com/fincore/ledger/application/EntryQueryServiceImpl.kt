@@ -34,15 +34,13 @@ class EntryQueryServiceImpl(
         require(!start.isAfter(end)) { "from must be on or before to" }
         require(Duration.between(start, end) <= MAX_WINDOW) { "range must span at most ${MAX_WINDOW.toDays()} days" }
         val decoded = cursor?.let(EntryCursor::decode)
+        val pageable = PageRequest.of(0, limit + 1)
         val rows =
-            entryRepository.findAccountEntries(
-                accountId.value,
-                start,
-                end,
-                decoded?.postedAt,
-                decoded?.id,
-                PageRequest.of(0, limit + 1),
-            )
+            if (decoded == null) {
+                entryRepository.findAccountEntries(accountId.value, start, end, pageable)
+            } else {
+                entryRepository.findAccountEntriesAfter(accountId.value, start, end, decoded.postedAt, decoded.id, pageable)
+            }
         val hasMore = rows.size > limit
         val page = if (hasMore) rows.take(limit) else rows
         val nextCursor = if (hasMore) EntryCursor(page.last().postedAt, page.last().key.id).encode() else null

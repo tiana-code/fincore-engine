@@ -53,7 +53,7 @@ class EntryQueryServiceImplTest {
         val to = slot<Instant>()
         val pageable = slot<Pageable>()
         every {
-            entryRepository.findAccountEntries(accountId.value, capture(from), capture(to), null, null, capture(pageable))
+            entryRepository.findAccountEntries(accountId.value, capture(from), capture(to), capture(pageable))
         } returns emptyList()
 
         service.listAccountEntries(accountId, null, null, null, 50)
@@ -67,7 +67,7 @@ class EntryQueryServiceImplTest {
         stubAccount()
         val newest = Instant.parse("2026-06-13T10:00:00Z")
         val rows = listOf(row(newest), row(newest.minusSeconds(1)), row(newest.minusSeconds(2)))
-        every { entryRepository.findAccountEntries(any(), any(), any(), any(), any(), any()) } returns rows
+        every { entryRepository.findAccountEntries(any(), any(), any(), any()) } returns rows
 
         val page = service.listAccountEntries(accountId, null, null, null, 2)
 
@@ -79,7 +79,7 @@ class EntryQueryServiceImplTest {
     @Test
     fun `should return a null next cursor when the page does not overflow`() {
         stubAccount()
-        every { entryRepository.findAccountEntries(any(), any(), any(), any(), any(), any()) } returns
+        every { entryRepository.findAccountEntries(any(), any(), any(), any()) } returns
             listOf(row(Instant.parse("2026-06-13T10:00:00Z")))
 
         service.listAccountEntries(accountId, null, null, null, 2).nextCursor shouldBe null
@@ -91,7 +91,7 @@ class EntryQueryServiceImplTest {
         val cursorPostedAt = Instant.parse("2026-06-10T08:00:00Z")
         val cursorId = UUID.randomUUID()
         every {
-            entryRepository.findAccountEntries(accountId.value, any(), any(), cursorPostedAt, cursorId, any())
+            entryRepository.findAccountEntriesAfter(accountId.value, any(), any(), cursorPostedAt, cursorId, any())
         } returns emptyList()
 
         service.listAccountEntries(accountId, null, null, EntryCursor(cursorPostedAt, cursorId).encode(), 50)
