@@ -51,6 +51,7 @@ class FailureAuditIT(
                     .withTokenValue(token)
                     .header("alg", "none")
                     .subject(ACTOR)
+                    .claim("scope", "ledger:write")
                     .issuedAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(EXPIRY_SECONDS))
                     .build()

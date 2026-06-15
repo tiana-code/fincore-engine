@@ -41,6 +41,7 @@ class LedgerApiSmokeIT(
                     .withTokenValue(token)
                     .header("alg", "none")
                     .subject("smoke-user")
+                    .claim("scope", "ledger:read ledger:write")
                     .issuedAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(EXPIRY_SECONDS))
                     .build()
@@ -56,6 +57,13 @@ class LedgerApiSmokeIT(
         body shouldContain "/v1/accounts"
         body shouldContain "/v1/transactions"
         body shouldContain "BUSL-1.1"
+    }
+
+    @Test
+    fun `should serve the actuator health endpoint without a token`() {
+        val response = rest.getForEntity("/actuator/health", String::class.java)
+
+        response.statusCode.value() shouldBe 200
     }
 
     @Test

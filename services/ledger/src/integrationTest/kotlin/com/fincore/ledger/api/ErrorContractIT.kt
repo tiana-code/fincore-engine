@@ -45,6 +45,7 @@ class ErrorContractIT(
                     .withTokenValue(token)
                     .header("alg", "none")
                     .subject("err-contract-it")
+                    .claim("scope", "ledger:read ledger:write")
                     .issuedAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(EXPIRY_SECONDS))
                     .build()

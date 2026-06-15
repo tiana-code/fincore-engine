@@ -1,6 +1,11 @@
 spring:
   application:
     name: ledger-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI}
 springdoc:
   api-docs:
     path: /v3/api-docs
