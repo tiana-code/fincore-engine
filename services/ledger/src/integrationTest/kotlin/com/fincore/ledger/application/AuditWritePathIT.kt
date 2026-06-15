@@ -78,6 +78,11 @@ class AuditWritePathIT(
         MDC.clear()
     }
 
+    private fun rowsFor(
+        resourceId: String,
+        action: AuditAction,
+    ) = auditRepository.findAll().filter { it.resourceId == resourceId && it.action == action.name }
+
     private fun newAccount(): com.fincore.ledger.domain.Account =
         accountService.create(
             CreateAccountCommand("Test Account", AccountType.USER_WALLET, Currency.USD, ACTOR),
@@ -123,7 +128,7 @@ class AuditWritePathIT(
                 ),
             )
 
-        val rows = auditRepository.findAll()
+        val rows = rowsFor(account.id.toString(), AuditAction.ACCOUNT_CREATE)
         rows.size shouldBe 1
         val row = rows.first()
         row.action shouldBe AuditAction.ACCOUNT_CREATE.name
@@ -143,7 +148,7 @@ class AuditWritePathIT(
 
         accountService.changeStatus(account.id, AccountStatus.FROZEN, ACTOR)
 
-        val rows = auditRepository.findAll().filter { it.action == AuditAction.ACCOUNT_STATUS_CHANGE.name }
+        val rows = rowsFor(account.id.toString(), AuditAction.ACCOUNT_STATUS_CHANGE)
         rows.size shouldBe 1
         val row = rows.first()
         row.action shouldBe AuditAction.ACCOUNT_STATUS_CHANGE.name
@@ -163,7 +168,7 @@ class AuditWritePathIT(
 
         accountService.rename(account.id, "Renamed Account", ACTOR)
 
-        val rows = auditRepository.findAll().filter { it.action == AuditAction.ACCOUNT_RENAME.name }
+        val rows = rowsFor(account.id.toString(), AuditAction.ACCOUNT_RENAME)
         rows.size shouldBe 1
         val row = rows.first()
         row.action shouldBe AuditAction.ACCOUNT_RENAME.name
@@ -184,7 +189,7 @@ class AuditWritePathIT(
         val expectedHash = sha256Hex(requestBody)
         val posted = postBalanced("ref-audit-4", debit.id, credit.id, requestHash = expectedHash)
 
-        val rows = auditRepository.findAll().filter { it.action == AuditAction.TRANSACTION_POST.name }
+        val rows = rowsFor(posted.id.toString(), AuditAction.TRANSACTION_POST)
         rows.size shouldBe 1
         val row = rows.first()
         row.action shouldBe AuditAction.TRANSACTION_POST.name
@@ -213,7 +218,7 @@ class AuditWritePathIT(
                 requestHash = expectedHash,
             )
 
-        val rows = auditRepository.findAll().filter { it.action == AuditAction.TRANSACTION_REVERSE.name }
+        val rows = rowsFor(original.id.toString(), AuditAction.TRANSACTION_REVERSE)
         rows.size shouldBe 1
         val row = rows.first()
         row.action shouldBe AuditAction.TRANSACTION_REVERSE.name
@@ -243,7 +248,7 @@ class AuditWritePathIT(
                 requestHash = null,
             )
 
-        val rows = auditRepository.findAll().filter { it.action == AuditAction.TRANSACTION_REVERSE.name }
+        val rows = rowsFor(original.id.toString(), AuditAction.TRANSACTION_REVERSE)
         rows.size shouldBe 1
         val row = rows.first()
         row.action shouldBe AuditAction.TRANSACTION_REVERSE.name
@@ -261,6 +266,7 @@ class AuditWritePathIT(
         val key = IdempotencyKey.of("audit-idem-key-0000000000000000000000")
         val requestBody = """{"name":"Idempotent Account","type":"USER_WALLET","currency":"USD"}"""
         var runs = 0
+        var createdId = ""
 
         idempotencyService.execute(key, requestBody) { hash ->
             runs++
@@ -273,6 +279,7 @@ class AuditWritePathIT(
                     requestHash = hash,
                 )
             val account = accountService.create(cmd)
+            createdId = account.id.toString()
             StoredResponse(201, """{"id":"${account.id}"}""")
         }
 
@@ -282,7 +289,7 @@ class AuditWritePathIT(
         }
 
         runs shouldBe 1
-        auditRepository.findAll().filter { it.action == AuditAction.ACCOUNT_CREATE.name }.size shouldBe 1
+        rowsFor(createdId, AuditAction.ACCOUNT_CREATE).size shouldBe 1
     }
 
     companion object {

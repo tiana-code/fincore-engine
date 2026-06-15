@@ -76,6 +76,7 @@ class AuditRetryTopologyIT(
         val credit = newAccount()
         val key = IdempotencyKey.of("retry-topo-happy-00000000000000000000000".take(40))
         val body = """{"reference":"ref-topo-happy","currency":"USD"}"""
+        var postedId = ""
 
         idempotencyService.execute(key, body) { hash ->
             val posted =
@@ -94,10 +95,11 @@ class AuditRetryTopologyIT(
                         requestHash = hash,
                     ),
                 )
+            postedId = posted.id.toString()
             StoredResponse(201, """{"id":"${posted.id}"}""")
         }
 
-        auditRepository.findAll().filter { it.action == AuditAction.TRANSACTION_POST.name }.size shouldBe 1
+        auditRepository.findAll().filter { it.resourceId == postedId && it.action == AuditAction.TRANSACTION_POST.name }.size shouldBe 1
         transactionRepository.findAll().filter { it.reference == "ref-topo-happy" }.size shouldBe 1
     }
 

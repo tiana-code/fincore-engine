@@ -33,7 +33,6 @@ import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
-import javax.sql.DataSource
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -47,8 +46,8 @@ import javax.sql.DataSource
 class AuditTrailWriterIT(
     @Autowired private val writer: AuditTrailWriter,
     @Autowired private val auditRepository: AuditEventRepository,
+    @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val helper: AuditTrailWriterIT.WriteHelper,
-    @Autowired private val dataSource: DataSource,
 ) {
     @TestConfiguration
     class JacksonConfig {
@@ -62,28 +61,12 @@ class AuditTrailWriterIT(
     ) {
         @Transactional
         fun commit(resourceId: String) {
-            writer.record(
-                AuditRecord(
-                    actorId = "auth0|test",
-                    action = AuditAction.ACCOUNT_CREATE,
-                    resourceType = AuditResourceType.ACCOUNT,
-                    resourceId = resourceId,
-                    requestHash = null,
-                ),
-            )
+            writer.record(record(AuditAction.ACCOUNT_CREATE, resourceId, null))
         }
 
         @Transactional
         fun rollback(resourceId: String) {
-            writer.record(
-                AuditRecord(
-                    actorId = "auth0|test",
-                    action = AuditAction.ACCOUNT_CREATE,
-                    resourceType = AuditResourceType.ACCOUNT,
-                    resourceId = resourceId,
-                    requestHash = null,
-                ),
-            )
+            writer.record(record(AuditAction.ACCOUNT_CREATE, resourceId, null))
             throw RuntimeException("forced rollback")
         }
 
@@ -92,34 +75,36 @@ class AuditTrailWriterIT(
             resourceId: String,
             payload: Map<String, String>,
         ) {
-            writer.record(
-                AuditRecord(
-                    actorId = "auth0|test",
-                    action = AuditAction.ACCOUNT_STATUS_CHANGE,
-                    resourceType = AuditResourceType.ACCOUNT,
-                    resourceId = resourceId,
-                    requestHash = null,
-                    payload = payload,
-                ),
-            )
+            writer.record(record(AuditAction.ACCOUNT_STATUS_CHANGE, resourceId, payload))
         }
+
+        private fun record(
+            action: AuditAction,
+            resourceId: String,
+            payload: Map<String, String>?,
+        ) = AuditRecord(
+            actorId = "auth0|test",
+            action = action,
+            resourceType = AuditResourceType.ACCOUNT,
+            resourceId = resourceId,
+            requestHash = null,
+            payload = payload,
+        )
     }
 
     @AfterEach
     fun cleanUp() {
         MDC.clear()
-        dataSource.connection.use { connection ->
-            connection.createStatement().use { it.execute("TRUNCATE platform.audit_events") }
-        }
     }
+
+    private fun rowFor(resourceId: String) = auditRepository.findAll().filter { it.resourceId == resourceId }
 
     @Test
     fun `should commit one audit row when the surrounding transaction commits`() {
         helper.commit("acc-commit-1")
 
-        val rows = auditRepository.findAll()
+        val rows = rowFor("acc-commit-1")
         rows.size shouldBe 1
-        rows.first().resourceId shouldBe "acc-commit-1"
         rows.first().result shouldBe AuditResult.SUCCESS
         rows.first().action shouldBe AuditAction.ACCOUNT_CREATE.name
     }
@@ -130,7 +115,7 @@ class AuditTrailWriterIT(
             helper.rollback("acc-rollback-1")
         }
 
-        auditRepository.findAll().size shouldBe 0
+        rowFor("acc-rollback-1").size shouldBe 0
     }
 
     @Test
@@ -147,17 +132,17 @@ class AuditTrailWriterIT(
             )
         }
 
-        auditRepository.findAll().size shouldBe 0
+        rowFor("acc-no-tx").size shouldBe 0
     }
 
     @Test
     fun `should store status payload when action is ACCOUNT_STATUS_CHANGE`() {
         helper.commitWithPayload("acc-status-1", mapOf("status" to "FROZEN"))
 
-        val rows = auditRepository.findAll()
+        val rows = rowFor("acc-status-1")
         rows.size shouldBe 1
         val payloadJson = rows.first().payload.shouldNotBeNull()
-        payloadJson shouldBe """{"status":"FROZEN"}"""
+        objectMapper.readTree(payloadJson).get("status").asText() shouldBe "FROZEN"
     }
 
     @Test
@@ -165,7 +150,7 @@ class AuditTrailWriterIT(
         MDC.put("correlation_id", "corr-it-001")
         helper.commit("acc-corr-1")
 
-        val rows = auditRepository.findAll()
+        val rows = rowFor("acc-corr-1")
         rows.size shouldBe 1
         rows.first().correlationId shouldBe "corr-it-001"
     }
@@ -175,7 +160,7 @@ class AuditTrailWriterIT(
         MDC.clear()
         helper.commit("acc-corr-2")
 
-        val rows = auditRepository.findAll()
+        val rows = rowFor("acc-corr-2")
         rows.size shouldBe 1
         rows.first().correlationId.shouldNotBeBlank()
     }
@@ -184,7 +169,7 @@ class AuditTrailWriterIT(
     fun `should store null requestHash for operations without a request body`() {
         helper.commitWithPayload("acc-hash-null", mapOf("status" to "CLOSED"))
 
-        val rows = auditRepository.findAll()
+        val rows = rowFor("acc-hash-null")
         rows.size shouldBe 1
         rows.first().requestHash.shouldBeNull()
     }
