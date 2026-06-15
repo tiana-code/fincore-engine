@@ -134,6 +134,7 @@ class DeniedAuditIT(
             registry.add("spring.datasource.url") { PostgresContainerExtension.jdbcUrl }
             registry.add("spring.datasource.username") { PostgresContainerExtension.username }
             registry.add("spring.datasource.password") { PostgresContainerExtension.password }
+            registry.add("spring.datasource.hikari.maximum-pool-size") { "2" }
             registry.add("spring.jpa.hibernate.ddl-auto") { "none" }
         }
     }
