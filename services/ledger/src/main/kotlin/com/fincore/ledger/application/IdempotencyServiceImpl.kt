@@ -7,7 +7,6 @@ import com.fincore.core.IdempotencyKey
 import com.fincore.ledger.domain.exception.ConcurrencyConflictException
 import org.springframework.dao.OptimisticLockingFailureException
 import org.springframework.stereotype.Service
-import java.security.MessageDigest
 
 @Service
 class IdempotencyServiceImpl(
@@ -18,8 +17,8 @@ class IdempotencyServiceImpl(
         requestBody: String,
         action: (String) -> StoredResponse,
     ): IdempotentResult {
-        val keyHash = sha256Hex(key.value)
-        val requestHash = sha256Hex(requestBody)
+        val keyHash = RequestHashing.sha256Hex(key.value)
+        val requestHash = RequestHashing.sha256Hex(requestBody)
         return runWithRetry(keyHash, requestHash, action)
     }
 
@@ -41,12 +40,6 @@ class IdempotencyServiceImpl(
             }
         }
     }
-
-    private fun sha256Hex(value: String): String =
-        MessageDigest
-            .getInstance("SHA-256")
-            .digest(value.toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
 
     companion object {
         const val MAX_ATTEMPTS = 3

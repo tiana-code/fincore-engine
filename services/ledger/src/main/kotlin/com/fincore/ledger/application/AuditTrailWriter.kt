@@ -5,6 +5,7 @@ package com.fincore.ledger.application
 
 import com.fincore.ledger.domain.enum.AuditAction
 import com.fincore.ledger.domain.enum.AuditResourceType
+import com.fincore.ledger.domain.enum.AuditResult
 
 @Suppress("LongParameterList")
 data class AuditRecord(
@@ -18,4 +19,9 @@ data class AuditRecord(
 
 interface AuditTrailWriter {
     fun record(record: AuditRecord)
+
+    fun recordOutcome(
+        record: AuditRecord,
+        result: AuditResult,
+    )
 }

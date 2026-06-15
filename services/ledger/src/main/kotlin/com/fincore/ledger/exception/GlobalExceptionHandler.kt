@@ -25,7 +25,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 import java.net.URI
 
 @RestControllerAdvice
-class GlobalExceptionHandler {
+class GlobalExceptionHandler(
+    private val failureAuditRecorder: FailureAuditRecorder,
+) {
     @ExceptionHandler(AccountNotFoundException::class)
     fun handleAccountNotFound(
         ex: AccountNotFoundException,
@@ -126,13 +128,15 @@ class GlobalExceptionHandler {
         type: ProblemType,
         detail: String?,
         request: HttpServletRequest,
-    ): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(type.status, detail ?: type.title).apply {
+    ): ProblemDetail {
+        failureAuditRecorder.record(request, type)
+        return ProblemDetail.forStatusAndDetail(type.status, detail ?: type.title).apply {
             this.title = type.title
             this.type = type.type
             this.instance = URI.create(request.requestURI)
             setProperty("code", type.code)
         }
+    }
 
     private companion object {
         const val RETRY_AFTER_SECONDS = "1"
