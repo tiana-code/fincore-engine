@@ -5,9 +5,11 @@ package com.fincore.ledger.api
 
 import com.fincore.core.AccountId
 import com.fincore.core.TransactionId
+import com.fincore.ledger.api.error.AuditEndpointResolver
 import com.fincore.ledger.api.idempotency.IdempotencyAttributes
 import com.fincore.ledger.api.idempotency.IdempotencyFilter
 import com.fincore.ledger.api.mapper.LedgerApiMapper
+import com.fincore.ledger.application.AuditTrailWriter
 import com.fincore.ledger.application.EntryView
 import com.fincore.ledger.application.PostTransactionCommand
 import com.fincore.ledger.application.PostedTransaction
@@ -15,6 +17,7 @@ import com.fincore.ledger.application.TransactionDetail
 import com.fincore.ledger.application.TransactionPage
 import com.fincore.ledger.application.TransactionService
 import com.fincore.ledger.application.TransactionSummary
+import com.fincore.ledger.config.AuditingAccessDeniedHandler
 import com.fincore.ledger.config.SecurityConfig
 import com.fincore.ledger.domain.enum.EntryDirection
 import com.fincore.ledger.domain.enum.TransactionStatus
@@ -25,6 +28,7 @@ import com.fincore.ledger.domain.exception.DoubleEntryViolationException
 import com.fincore.ledger.domain.exception.DuplicateTransactionException
 import com.fincore.ledger.domain.exception.TransactionAlreadyReversedException
 import com.fincore.ledger.domain.exception.TransactionNotFoundException
+import com.fincore.ledger.exception.FailureAuditRecorder
 import io.kotest.matchers.shouldBe
 import io.mockk.clearMocks
 import io.mockk.every
@@ -52,7 +56,15 @@ import java.math.BigDecimal
 import java.time.Instant
 
 @WebMvcTest(TransactionController::class)
-@Import(SecurityConfig::class, LedgerApiMapper::class, IdempotencyFilter::class, TransactionControllerTest.Mocks::class)
+@Import(
+    SecurityConfig::class,
+    LedgerApiMapper::class,
+    IdempotencyFilter::class,
+    AuditEndpointResolver::class,
+    FailureAuditRecorder::class,
+    AuditingAccessDeniedHandler::class,
+    TransactionControllerTest.Mocks::class,
+)
 class TransactionControllerTest(
     @Autowired private val mockMvc: MockMvc,
     @Autowired private val transactionService: TransactionService,
@@ -67,6 +79,8 @@ class TransactionControllerTest(
         @Bean fun transactionService(): TransactionService = mockk()
 
         @Bean fun idempotencyService(): FakeIdempotencyService = FakeIdempotencyService()
+
+        @Bean fun auditTrailWriter(): AuditTrailWriter = mockk(relaxed = true)
 
         @Bean fun jwtDecoder(): JwtDecoder = mockk()
     }

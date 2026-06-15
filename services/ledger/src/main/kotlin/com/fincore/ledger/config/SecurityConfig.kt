@@ -14,7 +14,10 @@ import org.springframework.security.web.SecurityFilterChain
 @EnableWebSecurity
 class SecurityConfig {
     @Bean
-    fun filterChain(http: HttpSecurity): SecurityFilterChain =
+    fun filterChain(
+        http: HttpSecurity,
+        accessDeniedHandler: AuditingAccessDeniedHandler,
+    ): SecurityFilterChain =
         http
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
@@ -24,7 +27,8 @@ class SecurityConfig {
                     .permitAll()
                     .anyRequest()
                     .authenticated()
-            }.oauth2ResourceServer { it.jwt {} }
+            }.exceptionHandling { it.accessDeniedHandler(accessDeniedHandler) }
+            .oauth2ResourceServer { it.jwt {} }
             .build()
 
     private companion object {

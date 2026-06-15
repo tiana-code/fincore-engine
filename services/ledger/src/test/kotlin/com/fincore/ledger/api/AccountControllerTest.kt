@@ -8,6 +8,7 @@ import com.fincore.core.Currency
 import com.fincore.core.EntryId
 import com.fincore.core.Money
 import com.fincore.core.TransactionId
+import com.fincore.ledger.api.error.AuditEndpointResolver
 import com.fincore.ledger.api.idempotency.IdempotencyAttributes
 import com.fincore.ledger.api.idempotency.IdempotencyFilter
 import com.fincore.ledger.api.mapper.LedgerApiMapper
@@ -16,16 +17,19 @@ import com.fincore.ledger.application.AccountEntry
 import com.fincore.ledger.application.AccountEntryPage
 import com.fincore.ledger.application.AccountPage
 import com.fincore.ledger.application.AccountService
+import com.fincore.ledger.application.AuditTrailWriter
 import com.fincore.ledger.application.BalanceService
 import com.fincore.ledger.application.CreateAccountCommand
 import com.fincore.ledger.application.EntryQueryService
 import com.fincore.ledger.application.IdempotentResult
+import com.fincore.ledger.config.AuditingAccessDeniedHandler
 import com.fincore.ledger.config.SecurityConfig
 import com.fincore.ledger.domain.Account
 import com.fincore.ledger.domain.enum.AccountType
 import com.fincore.ledger.domain.enum.EntryDirection
 import com.fincore.ledger.domain.exception.AccountNotFoundException
 import com.fincore.ledger.domain.exception.IdempotencyConflictException
+import com.fincore.ledger.exception.FailureAuditRecorder
 import io.kotest.matchers.shouldBe
 import io.mockk.clearMocks
 import io.mockk.every
@@ -56,7 +60,15 @@ import java.math.BigDecimal
 import java.time.Instant
 
 @WebMvcTest(AccountController::class)
-@Import(SecurityConfig::class, LedgerApiMapper::class, IdempotencyFilter::class, AccountControllerTest.Mocks::class)
+@Import(
+    SecurityConfig::class,
+    LedgerApiMapper::class,
+    IdempotencyFilter::class,
+    AuditEndpointResolver::class,
+    FailureAuditRecorder::class,
+    AuditingAccessDeniedHandler::class,
+    AccountControllerTest.Mocks::class,
+)
 class AccountControllerTest(
     @Autowired private val mockMvc: MockMvc,
     @Autowired private val accountService: AccountService,
@@ -75,6 +87,8 @@ class AccountControllerTest(
         @Bean fun entryQueryService(): EntryQueryService = mockk()
 
         @Bean fun idempotencyService(): FakeIdempotencyService = FakeIdempotencyService()
+
+        @Bean fun auditTrailWriter(): AuditTrailWriter = mockk(relaxed = true)
 
         @Bean fun jwtDecoder(): JwtDecoder = mockk()
     }

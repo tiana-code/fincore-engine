@@ -228,6 +228,52 @@ class AuditTrailWriterImplTest {
     }
 
     @Test
+    fun `should save entity with the given result and no active-transaction check when recordOutcome is called`() {
+        val slot = slot<AuditEventEntity>()
+        every { auditRepository.saveAndFlush(capture(slot)) } answers { firstArg() }
+
+        writer.recordOutcome(
+            AuditRecord(
+                actorId = "auth0|actor",
+                action = AuditAction.TRANSACTION_POST,
+                resourceType = AuditResourceType.TRANSACTION,
+                resourceId = "unknown",
+                requestHash = "c".repeat(64),
+                payload = mapOf("code" to "ENTRIES_SUM_NOT_ZERO"),
+            ),
+            AuditResult.FAILURE,
+        )
+
+        val saved = slot.captured
+        saved.result shouldBe AuditResult.FAILURE
+        saved.resourceId shouldBe "unknown"
+        saved.requestHash shouldBe "c".repeat(64)
+        val tree = objectMapper.readTree(saved.payload.shouldNotBeNull())
+        tree.get("code").asText() shouldBe "ENTRIES_SUM_NOT_ZERO"
+    }
+
+    @Test
+    fun `should save a DENIED entity when recordOutcome is called with DENIED`() {
+        val slot = slot<AuditEventEntity>()
+        every { auditRepository.saveAndFlush(capture(slot)) } answers { firstArg() }
+
+        writer.recordOutcome(
+            AuditRecord(
+                actorId = "auth0|actor",
+                action = AuditAction.ACCOUNT_CREATE,
+                resourceType = AuditResourceType.ACCOUNT,
+                resourceId = "unknown",
+                requestHash = null,
+                payload = mapOf("code" to "ACCESS_DENIED"),
+            ),
+            AuditResult.DENIED,
+        )
+
+        slot.captured.result shouldBe AuditResult.DENIED
+        slot.captured.requestHash.shouldBeNull()
+    }
+
+    @Test
     fun `should store a 64-char requestHash when provided`() {
         mockkStatic(TransactionSynchronizationManager::class)
         every { TransactionSynchronizationManager.isActualTransactionActive() } returns true

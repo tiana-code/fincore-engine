@@ -4,11 +4,14 @@
 package com.fincore.ledger.exception
 
 import com.fincore.core.AccountId
+import com.fincore.ledger.api.error.ProblemType
 import com.fincore.ledger.domain.exception.AccountNotFoundException
 import com.fincore.ledger.domain.exception.ConcurrencyConflictException
 import com.fincore.ledger.domain.exception.DoubleEntryViolationException
 import com.fincore.ledger.domain.exception.IdempotencyConflictException
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
+import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.validation.BeanPropertyBindingResult
@@ -17,7 +20,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.method.HandlerMethod
 
 class GlobalExceptionHandlerTest {
-    private val handler = GlobalExceptionHandler()
+    private val failureAuditRecorder = mockk<FailureAuditRecorder>(relaxed = true)
+    private val handler = GlobalExceptionHandler(failureAuditRecorder)
     private val request = MockHttpServletRequest("GET", "/v1/test")
 
     @Test
@@ -49,6 +53,12 @@ class GlobalExceptionHandlerTest {
         response.statusCode.value() shouldBe 503
         response.headers.getFirst("Retry-After") shouldBe "1"
         response.body?.properties?.get("code") shouldBe "CONCURRENCY_CONFLICT"
+    }
+
+    @Test
+    fun `should route the problem type to the failure audit recorder`() {
+        handler.handleDoubleEntry(DoubleEntryViolationException("net=5"), request)
+        verify { failureAuditRecorder.record(request, ProblemType.DOUBLE_ENTRY_VIOLATION) }
     }
 
     @Test

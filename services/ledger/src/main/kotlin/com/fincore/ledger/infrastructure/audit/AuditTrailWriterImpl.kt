@@ -12,6 +12,8 @@ import com.fincore.ledger.infrastructure.persistence.AuditEventEntity
 import com.fincore.ledger.infrastructure.persistence.AuditEventRepository
 import org.slf4j.MDC
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Propagation
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.Instant
 import java.util.UUID
@@ -25,24 +27,34 @@ class AuditTrailWriterImpl(
         check(TransactionSynchronizationManager.isActualTransactionActive()) {
             "AuditTrailWriter.record must be called within an active transaction"
         }
-        auditRepository.saveAndFlush(
-            AuditEventEntity(
-                id = UUID.randomUUID(),
-                actorId = record.actorId,
-                correlationId = resolveCorrelationId(),
-                action = record.action.name,
-                resourceType = record.resourceType.name,
-                resourceId = record.resourceId,
-                result = AuditResult.SUCCESS,
-                requestHash = record.requestHash,
-                createdAt = Instant.now(),
-                payload = record.payload?.let { objectMapper.writeValueAsString(it) },
-            ),
-        )
+        auditRepository.saveAndFlush(toEntity(record, AuditResult.SUCCESS))
     }
 
-    private fun resolveCorrelationId(): String {
-        val fromMdc = MDC.get(CorrelationIdAttributes.MDC_KEY)
-        return if (fromMdc.isNullOrBlank()) UUID.randomUUID().toString() else fromMdc
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    override fun recordOutcome(
+        record: AuditRecord,
+        result: AuditResult,
+    ) {
+        auditRepository.saveAndFlush(toEntity(record, result))
     }
+
+    private fun toEntity(
+        record: AuditRecord,
+        result: AuditResult,
+    ): AuditEventEntity =
+        AuditEventEntity(
+            id = UUID.randomUUID(),
+            actorId = record.actorId,
+            correlationId = resolveCorrelationId(),
+            action = record.action.name,
+            resourceType = record.resourceType.name,
+            resourceId = record.resourceId,
+            result = result,
+            requestHash = record.requestHash,
+            createdAt = Instant.now(),
+            payload = record.payload?.let { objectMapper.writeValueAsString(it) },
+        )
+
+    private fun resolveCorrelationId(): String =
+        MDC.get(CorrelationIdAttributes.MDC_KEY)?.takeIf { it.isNotBlank() } ?: UUID.randomUUID().toString()
 }
