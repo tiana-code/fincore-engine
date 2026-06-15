@@ -3,8 +3,6 @@
 
 package com.fincore.ledger.application
 
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fincore.core.AccountId
 import com.fincore.core.Currency
 import com.fincore.core.TransactionId
@@ -18,19 +16,20 @@ import com.fincore.ledger.domain.exception.DoubleEntryViolationException
 import com.fincore.ledger.domain.exception.DuplicateTransactionException
 import com.fincore.ledger.domain.exception.TransactionAlreadyReversedException
 import com.fincore.ledger.domain.exception.TransactionNotFoundException
+import com.fincore.ledger.infrastructure.outbox.OutboxEventPublisher
 import com.fincore.ledger.infrastructure.persistence.AccountBalanceRepository
 import com.fincore.ledger.infrastructure.persistence.AccountEntity
 import com.fincore.ledger.infrastructure.persistence.AccountRepository
 import com.fincore.ledger.infrastructure.persistence.EntryEntity
 import com.fincore.ledger.infrastructure.persistence.EntryKey
 import com.fincore.ledger.infrastructure.persistence.EntryRepository
-import com.fincore.ledger.infrastructure.persistence.OutboxEventRepository
 import com.fincore.ledger.infrastructure.persistence.TransactionEntity
 import com.fincore.ledger.infrastructure.persistence.TransactionPersistenceAdapter
 import com.fincore.ledger.infrastructure.persistence.TransactionRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.mockk.every
+import io.mockk.justRun
 import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Test
@@ -44,17 +43,15 @@ class TransactionPosterTest {
     private val transactionRepository = mockk<TransactionRepository>()
     private val entryRepository = mockk<EntryRepository>()
     private val balanceRepository = mockk<AccountBalanceRepository>()
-    private val outboxRepository = mockk<OutboxEventRepository>()
-    private val objectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
+    private val outboxEventPublisher = mockk<OutboxEventPublisher>()
     private val poster =
         TransactionPoster(
             accountRepository,
             transactionRepository,
             entryRepository,
             balanceRepository,
-            outboxRepository,
+            outboxEventPublisher,
             TransactionPersistenceAdapter(),
-            objectMapper,
         )
 
     private val now = Instant.parse("2026-06-05T12:00:00Z")
@@ -98,14 +95,14 @@ class TransactionPosterTest {
         every { entryRepository.saveAndFlush(any()) } answers { firstArg() }
         every { balanceRepository.findById(any()) } returns Optional.empty()
         every { balanceRepository.saveAndFlush(any()) } answers { firstArg() }
-        every { outboxRepository.saveAndFlush(any()) } answers { firstArg() }
+        justRun { outboxEventPublisher.publish(any(), any(), any(), any(), any()) }
 
         val result = poster.post(command())
 
         result.reference shouldBe "ref-1"
         verify(exactly = 2) { entryRepository.saveAndFlush(any()) }
         verify(exactly = 2) { balanceRepository.saveAndFlush(any()) }
-        verify(exactly = 1) { outboxRepository.saveAndFlush(any()) }
+        verify(exactly = 1) { outboxEventPublisher.publish(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -181,7 +178,7 @@ class TransactionPosterTest {
         every { entryRepository.saveAndFlush(capture(entrySlots)) } answers { firstArg() }
         every { balanceRepository.findById(any()) } returns Optional.empty()
         every { balanceRepository.saveAndFlush(any()) } answers { firstArg() }
-        every { outboxRepository.saveAndFlush(any()) } answers { firstArg() }
+        justRun { outboxEventPublisher.publish(any(), any(), any(), any(), any()) }
 
         val result = poster.postReversal(originalId, "op", "corr-1")
 
@@ -192,7 +189,7 @@ class TransactionPosterTest {
         entrySlots[0].amount.compareTo(BigDecimal("-100.00")) shouldBe 0
         entrySlots[1].direction shouldBe EntryDirection.DEBIT
         entrySlots[1].amount.compareTo(BigDecimal("100.00")) shouldBe 0
-        verify(exactly = 1) { outboxRepository.saveAndFlush(any()) }
+        verify(exactly = 1) { outboxEventPublisher.publish(any(), any(), any(), any(), any()) }
     }
 
     @Test

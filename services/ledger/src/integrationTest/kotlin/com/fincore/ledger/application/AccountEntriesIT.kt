@@ -10,6 +10,7 @@ import com.fincore.core.AccountId
 import com.fincore.core.Currency
 import com.fincore.ledger.domain.enum.AccountType
 import com.fincore.ledger.domain.enum.EntryDirection
+import com.fincore.ledger.infrastructure.outbox.OutboxEventPublisherImpl
 import com.fincore.ledger.infrastructure.persistence.AccountPersistenceAdapter
 import com.fincore.ledger.infrastructure.persistence.TransactionPersistenceAdapter
 import com.fincore.test.containers.PostgresContainerExtension
@@ -39,6 +40,7 @@ import java.time.Instant
     AccountServiceImpl::class,
     AccountPersistenceAdapter::class,
     AccountEntriesIT.JacksonConfig::class,
+    OutboxEventPublisherImpl::class,
 )
 class AccountEntriesIT(
     @Autowired private val entryQueryService: EntryQueryService,
