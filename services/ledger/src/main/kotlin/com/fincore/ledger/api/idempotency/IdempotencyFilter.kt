@@ -5,11 +5,11 @@ package com.fincore.ledger.api.idempotency
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fincore.core.IdempotencyKey
+import com.fincore.ledger.api.error.ProblemType
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.http.HttpMethod
-import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ProblemDetail
 import org.springframework.stereotype.Component
@@ -52,11 +52,13 @@ class IdempotencyFilter(
         response: HttpServletResponse,
         detail: String?,
     ) {
-        val problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail ?: "invalid request")
-        problem.title = "invalid request"
-        problem.type = URI.create("urn:fincore:ledger:invalid-request")
+        val type = ProblemType.INVALID_REQUEST
+        val problem = ProblemDetail.forStatusAndDetail(type.status, detail ?: type.title)
+        problem.title = type.title
+        problem.type = type.type
         problem.instance = URI.create(request.requestURI)
-        response.status = HttpStatus.BAD_REQUEST.value()
+        problem.setProperty("code", type.code)
+        response.status = type.status.value()
         response.contentType = MediaType.APPLICATION_PROBLEM_JSON_VALUE
         objectMapper.writeValue(response.writer, problem)
     }
