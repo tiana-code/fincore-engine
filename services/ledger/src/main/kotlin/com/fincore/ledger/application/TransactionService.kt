@@ -14,6 +14,8 @@ interface TransactionService {
         id: TransactionId,
         actor: String,
         correlationId: String?,
+        reason: String?,
+        requestHash: String?,
     ): PostedTransaction
 
     fun list(

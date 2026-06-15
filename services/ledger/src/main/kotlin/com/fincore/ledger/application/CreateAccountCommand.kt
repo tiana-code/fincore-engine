@@ -11,4 +11,5 @@ data class CreateAccountCommand(
     val type: AccountType,
     val currency: Currency,
     val actor: String,
+    val requestHash: String? = null,
 )

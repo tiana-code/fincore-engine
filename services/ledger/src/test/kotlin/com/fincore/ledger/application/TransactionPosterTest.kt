@@ -44,6 +44,7 @@ class TransactionPosterTest {
     private val entryRepository = mockk<EntryRepository>()
     private val balanceRepository = mockk<AccountBalanceRepository>()
     private val outboxEventPublisher = mockk<OutboxEventPublisher>()
+    private val auditWriter = mockk<AuditTrailWriter>(relaxed = true)
     private val poster =
         TransactionPoster(
             accountRepository,
@@ -51,6 +52,7 @@ class TransactionPosterTest {
             entryRepository,
             balanceRepository,
             outboxEventPublisher,
+            auditWriter,
             TransactionPersistenceAdapter(),
         )
 
@@ -180,7 +182,7 @@ class TransactionPosterTest {
         every { balanceRepository.saveAndFlush(any()) } answers { firstArg() }
         justRun { outboxEventPublisher.publish(any(), any(), any(), any(), any()) }
 
-        val result = poster.postReversal(originalId, "op", "corr-1")
+        val result = poster.postReversal(originalId, "op", "corr-1", null, null)
 
         result.reference shouldBe "reversal-of-$originalId"
         original.status shouldBe TransactionStatus.REVERSED
@@ -198,7 +200,7 @@ class TransactionPosterTest {
         every { transactionRepository.findById(originalId.value) } returns
             Optional.of(transactionEntity(originalId.value, TransactionStatus.REVERSED))
 
-        shouldThrow<TransactionAlreadyReversedException> { poster.postReversal(originalId, "op", null) }
+        shouldThrow<TransactionAlreadyReversedException> { poster.postReversal(originalId, "op", null, null, null) }
 
         verify(exactly = 0) { entryRepository.saveAndFlush(any()) }
     }
@@ -208,6 +210,6 @@ class TransactionPosterTest {
         val originalId = TransactionId.generate()
         every { transactionRepository.findById(originalId.value) } returns Optional.empty()
 
-        shouldThrow<TransactionNotFoundException> { poster.postReversal(originalId, "op", null) }
+        shouldThrow<TransactionNotFoundException> { poster.postReversal(originalId, "op", null, null, null) }
     }
 }

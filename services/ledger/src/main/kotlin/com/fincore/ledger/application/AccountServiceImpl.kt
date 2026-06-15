@@ -6,6 +6,8 @@ package com.fincore.ledger.application
 import com.fincore.core.AccountId
 import com.fincore.ledger.domain.Account
 import com.fincore.ledger.domain.enum.AccountStatus
+import com.fincore.ledger.domain.enum.AuditAction
+import com.fincore.ledger.domain.enum.AuditResourceType
 import com.fincore.ledger.domain.exception.AccountNotFoundException
 import com.fincore.ledger.domain.exception.DomainException
 import com.fincore.ledger.infrastructure.persistence.AccountBalanceRepository
@@ -23,12 +25,22 @@ class AccountServiceImpl(
     private val accountRepository: AccountRepository,
     private val balanceRepository: AccountBalanceRepository,
     private val adapter: AccountPersistenceAdapter,
+    private val auditWriter: AuditTrailWriter,
 ) : AccountService {
     @Transactional
     override fun create(command: CreateAccountCommand): Account {
         val account = Account(AccountId.generate(), command.name, command.type, command.currency)
         val entity = adapter.toNewEntity(account, command.actor, Instant.now())
         accountRepository.saveAndFlush(entity)
+        auditWriter.record(
+            AuditRecord(
+                actorId = command.actor,
+                action = AuditAction.ACCOUNT_CREATE,
+                resourceType = AuditResourceType.ACCOUNT,
+                resourceId = account.id.toString(),
+                requestHash = command.requestHash,
+            ),
+        )
         return adapter.toDomain(entity)
     }
 
@@ -62,7 +74,17 @@ class AccountServiceImpl(
         account.rename(newName)
         entity.name = account.name
         entity.updatedBy = actor
-        return adapter.toDomain(accountRepository.saveAndFlush(entity))
+        val saved = adapter.toDomain(accountRepository.saveAndFlush(entity))
+        auditWriter.record(
+            AuditRecord(
+                actorId = actor,
+                action = AuditAction.ACCOUNT_RENAME,
+                resourceType = AuditResourceType.ACCOUNT,
+                resourceId = id.toString(),
+                requestHash = null,
+            ),
+        )
+        return saved
     }
 
     @Transactional
@@ -79,7 +101,18 @@ class AccountServiceImpl(
         account.transitionStatus(target)
         entity.status = account.status
         entity.updatedBy = actor
-        return adapter.toDomain(accountRepository.saveAndFlush(entity))
+        val saved = adapter.toDomain(accountRepository.saveAndFlush(entity))
+        auditWriter.record(
+            AuditRecord(
+                actorId = actor,
+                action = AuditAction.ACCOUNT_STATUS_CHANGE,
+                resourceType = AuditResourceType.ACCOUNT,
+                resourceId = id.toString(),
+                requestHash = null,
+                payload = mapOf("status" to target.name),
+            ),
+        )
+        return saved
     }
 
     private fun load(id: AccountId): AccountEntity = accountRepository.findById(id.value).orElseThrow { AccountNotFoundException(id) }

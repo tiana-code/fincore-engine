@@ -11,6 +11,8 @@ import jakarta.persistence.Enumerated
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import org.hibernate.annotations.Immutable
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import java.time.Instant
 import java.util.UUID
 
@@ -39,4 +41,7 @@ class AuditEventEntity(
     var requestHash: String?,
     @Column(name = "created_at", nullable = false)
     var createdAt: Instant,
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "payload")
+    var payload: String? = null,
 )

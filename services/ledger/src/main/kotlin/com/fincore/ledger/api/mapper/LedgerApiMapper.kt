@@ -37,12 +37,14 @@ class LedgerApiMapper {
     fun toCommand(
         request: CreateAccountRequest,
         actor: String,
+        requestHash: String?,
     ): CreateAccountCommand =
         CreateAccountCommand(
             name = request.name,
             type = request.type,
             currency = Currency.of(request.currency),
             actor = actor,
+            requestHash = requestHash,
         )
 
     fun toResponse(account: Account): AccountResponse =
@@ -75,6 +77,7 @@ class LedgerApiMapper {
         request: PostTransactionRequest,
         actor: String,
         correlationId: String?,
+        requestHash: String?,
     ): PostTransactionCommand =
         PostTransactionCommand(
             reference = request.reference,
@@ -90,6 +93,7 @@ class LedgerApiMapper {
                 },
             actor = actor,
             correlationId = correlationId,
+            requestHash = requestHash,
         )
 
     fun toResponse(posted: PostedTransaction): TransactionResponse =

@@ -11,12 +11,12 @@ import com.fincore.ledger.application.StoredResponse
 // Hand fake, not MockK: MockK cannot build a call signature for execute() because IdempotencyKey is a
 // value class with init validation (its constructor rejects MockK's generated dummy string).
 class FakeIdempotencyService : IdempotencyService {
-    var handler: (IdempotencyKey, String, () -> StoredResponse) -> IdempotentResult = RUN_ACTION
+    var handler: (IdempotencyKey, String, (String) -> StoredResponse) -> IdempotentResult = RUN_ACTION
 
     override fun execute(
         key: IdempotencyKey,
         requestBody: String,
-        action: () -> StoredResponse,
+        action: (String) -> StoredResponse,
     ): IdempotentResult = handler(key, requestBody, action)
 
     fun reset() {
@@ -24,8 +24,8 @@ class FakeIdempotencyService : IdempotencyService {
     }
 
     companion object {
-        val RUN_ACTION: (IdempotencyKey, String, () -> StoredResponse) -> IdempotentResult = { _, _, action ->
-            val response = action()
+        val RUN_ACTION: (IdempotencyKey, String, (String) -> StoredResponse) -> IdempotentResult = { _, requestBody, action ->
+            val response = action(requestBody)
             IdempotentResult(response.statusCode, response.responseBody, replayed = false)
         }
     }

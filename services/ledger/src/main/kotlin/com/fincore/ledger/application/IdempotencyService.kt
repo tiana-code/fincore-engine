@@ -20,6 +20,6 @@ interface IdempotencyService {
     fun execute(
         key: IdempotencyKey,
         requestBody: String,
-        action: () -> StoredResponse,
+        action: (String) -> StoredResponse,
     ): IdempotentResult
 }

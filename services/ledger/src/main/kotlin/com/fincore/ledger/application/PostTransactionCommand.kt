@@ -21,4 +21,5 @@ data class PostTransactionCommand(
     val entries: List<EntryLine>,
     val actor: String,
     val correlationId: String?,
+    val requestHash: String? = null,
 )

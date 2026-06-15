@@ -29,12 +29,13 @@ class LedgerApiMapperTest {
 
     @Test
     fun `should map create request to command with parsed currency and injected actor`() {
-        val command = mapper.toCommand(CreateAccountRequest("Wallet", AccountType.USER_WALLET, "EUR"), "user-1")
+        val command = mapper.toCommand(CreateAccountRequest("Wallet", AccountType.USER_WALLET, "EUR"), "user-1", "hash-1")
 
         command.name shouldBe "Wallet"
         command.type shouldBe AccountType.USER_WALLET
         command.currency shouldBe Currency.EUR
         command.actor shouldBe "user-1"
+        command.requestHash shouldBe "hash-1"
     }
 
     @Test
@@ -76,11 +77,12 @@ class LedgerApiMapperTest {
                     ),
             )
 
-        val command = mapper.toCommand(request, "user-1", "corr-1")
+        val command = mapper.toCommand(request, "user-1", "corr-1", "hash-2")
 
         command.currency shouldBe Currency.EUR
         command.actor shouldBe "user-1"
         command.correlationId shouldBe "corr-1"
+        command.requestHash shouldBe "hash-2"
         command.entries[0].accountId shouldBe a
         command.entries[0].amount.compareTo(BigDecimal("100.00")) shouldBe 0
         command.entries[1].accountId shouldBe b

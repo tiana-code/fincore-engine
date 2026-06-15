@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fincore.core.IdempotencyKey
 import com.fincore.core.TransactionId
 import com.fincore.ledger.api.dto.request.PostTransactionRequest
+import com.fincore.ledger.api.dto.request.ReverseTransactionRequest
 import com.fincore.ledger.api.dto.response.PageResponse
 import com.fincore.ledger.api.dto.response.TransactionDetailResponse
 import com.fincore.ledger.api.dto.response.TransactionResponse
@@ -96,8 +97,8 @@ class TransactionController(
     ): ResponseEntity<String> {
         var location: URI? = null
         val result =
-            idempotencyService.execute(IdempotencyKey.of(key), rawBody) {
-                val response = mapper.toResponse(transactionService.post(mapper.toCommand(request, jwt.subject, correlationId)))
+            idempotencyService.execute(IdempotencyKey.of(key), rawBody) { hash ->
+                val response = mapper.toResponse(transactionService.post(mapper.toCommand(request, jwt.subject, correlationId, hash)))
                 location = URI.create("/v1/transactions/${response.id}")
                 StoredResponse(HttpStatus.CREATED.value(), objectMapper.writeValueAsString(response))
             }
@@ -175,6 +176,7 @@ class TransactionController(
     @PostMapping("/{id}/reverse")
     fun reverse(
         @Parameter(description = "Transaction id (tx_ prefixed ULID)") @PathVariable id: String,
+        @Valid @RequestBody(required = false) request: ReverseTransactionRequest?,
         @Parameter(hidden = true) @AuthenticationPrincipal jwt: Jwt,
         @RequestHeader(value = CORRELATION_HEADER, required = false) correlationId: String?,
         @Parameter(hidden = true) @RequestAttribute(IdempotencyAttributes.KEY) key: String,
@@ -183,8 +185,11 @@ class TransactionController(
         val transactionId = TransactionId.fromString(id)
         var location: URI? = null
         val result =
-            idempotencyService.execute(IdempotencyKey.of(key), rawBody) {
-                val response = mapper.toResponse(transactionService.reverse(transactionId, jwt.subject, correlationId))
+            idempotencyService.execute(IdempotencyKey.of(key), rawBody) { hash ->
+                val response =
+                    mapper.toResponse(
+                        transactionService.reverse(transactionId, jwt.subject, correlationId, request?.reason, hash),
+                    )
                 location = URI.create("/v1/transactions/${response.id}")
                 StoredResponse(HttpStatus.CREATED.value(), objectMapper.writeValueAsString(response))
             }
