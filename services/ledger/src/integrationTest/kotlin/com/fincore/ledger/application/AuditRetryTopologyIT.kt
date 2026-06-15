@@ -18,11 +18,13 @@ import com.fincore.ledger.infrastructure.outbox.OutboxEventPublisherImpl
 import com.fincore.ledger.infrastructure.persistence.AccountPersistenceAdapter
 import com.fincore.ledger.infrastructure.persistence.AuditEventRepository
 import com.fincore.ledger.infrastructure.persistence.IdempotencyKeyRepository
+import com.fincore.ledger.infrastructure.persistence.OutboxEventRepository
 import com.fincore.ledger.infrastructure.persistence.TransactionPersistenceAdapter
 import com.fincore.ledger.infrastructure.persistence.TransactionRepository
 import com.fincore.test.containers.PostgresContainerExtension
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
@@ -79,11 +81,20 @@ class AuditRetryTopologyIT(
     @Autowired private val auditRepository: AuditEventRepository,
     @Autowired private val transactionRepository: TransactionRepository,
     @Autowired private val idempotencyKeyRepository: IdempotencyKeyRepository,
+    @Autowired private val outboxRepository: OutboxEventRepository,
 ) {
     @TestConfiguration
     class JacksonConfig {
         @Bean
         fun objectMapper(): ObjectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
+    }
+
+    // These tests commit (NOT_SUPPORTED), so committed outbox rows would leak into the shared
+    // container and inflate the global-count assertions in other committing ITs. Audit rows cannot be
+    // deleted (append-only trigger 018); other ITs scope audit by unique resourceId, so leaving them is safe.
+    @AfterEach
+    fun cleanOutbox() {
+        outboxRepository.deleteAll()
     }
 
     private fun newAccount(): com.fincore.ledger.domain.Account =
