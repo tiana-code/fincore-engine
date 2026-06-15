@@ -39,6 +39,25 @@ export interface TransactionResponse {
     postedAt: string
 }
 
+export type EntryDirection = 'DEBIT' | 'CREDIT'
+
+export interface EntryResponse {
+    accountId: string
+    direction: EntryDirection
+    amount: string
+    currency: string
+}
+
+export interface TransactionDetailResponse {
+    id: string
+    reference: string
+    description: string | null
+    status: TransactionStatus
+    reversesId: string | null
+    postedAt: string
+    entries: EntryResponse[]
+}
+
 export interface BalanceResponse {
     accountId: string
     currency: string
