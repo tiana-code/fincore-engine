@@ -15,6 +15,8 @@ import com.fincore.ledger.application.event.TransactionPostedPayload
 import com.fincore.ledger.domain.Entry
 import com.fincore.ledger.domain.Transaction
 import com.fincore.ledger.domain.enum.AccountStatus
+import com.fincore.ledger.domain.enum.AuditAction
+import com.fincore.ledger.domain.enum.AuditResourceType
 import com.fincore.ledger.domain.enum.TransactionStatus
 import com.fincore.ledger.domain.exception.AccountNotFoundException
 import com.fincore.ledger.domain.exception.DomainException
@@ -43,6 +45,7 @@ class TransactionPoster(
     private val entryRepository: EntryRepository,
     private val balanceRepository: AccountBalanceRepository,
     private val outboxEventPublisher: OutboxEventPublisher,
+    private val auditWriter: AuditTrailWriter,
     private val adapter: TransactionPersistenceAdapter,
 ) {
     @Transactional
@@ -58,6 +61,15 @@ class TransactionPoster(
         } catch (duplicate: DataIntegrityViolationException) {
             throw DuplicateTransactionException(command.reference, duplicate)
         }
+        auditWriter.record(
+            AuditRecord(
+                actorId = command.actor,
+                action = AuditAction.TRANSACTION_POST,
+                resourceType = AuditResourceType.TRANSACTION,
+                resourceId = transaction.id.toString(),
+                requestHash = command.requestHash,
+            ),
+        )
         return PostedTransaction(transaction.id, transaction.reference, transaction.status, postedAt)
     }
 
@@ -66,6 +78,8 @@ class TransactionPoster(
         originalId: TransactionId,
         actor: String,
         correlationId: String?,
+        reason: String?,
+        requestHash: String?,
     ): PostedTransaction {
         val original =
             transactionRepository.findById(originalId.value).orElseThrow { TransactionNotFoundException(originalId) }
@@ -81,7 +95,31 @@ class TransactionPoster(
         } catch (conflict: DataIntegrityViolationException) {
             throw TransactionAlreadyReversedException(originalId, conflict)
         }
+        recordReversalAudit(originalId, actor, requestHash, reason, compensating.id.toString())
         return PostedTransaction(compensating.id, compensating.reference, compensating.status, postedAt)
+    }
+
+    private fun recordReversalAudit(
+        originalId: TransactionId,
+        actor: String,
+        requestHash: String?,
+        reason: String?,
+        compensatingTransactionId: String,
+    ) {
+        auditWriter.record(
+            AuditRecord(
+                actorId = actor,
+                action = AuditAction.TRANSACTION_REVERSE,
+                resourceType = AuditResourceType.TRANSACTION,
+                resourceId = originalId.toString(),
+                requestHash = requestHash,
+                payload =
+                    buildMap {
+                        put("compensatingTransactionId", compensatingTransactionId)
+                        reason?.let { put("reason", it) }
+                    },
+            ),
+        )
     }
 
     private fun buildDomain(command: PostTransactionCommand): Transaction {

@@ -12,6 +12,7 @@ import com.fincore.ledger.domain.enum.AccountType
 import com.fincore.ledger.domain.enum.EntryDirection
 import com.fincore.ledger.domain.enum.TransactionStatus
 import com.fincore.ledger.domain.exception.TransactionAlreadyReversedException
+import com.fincore.ledger.infrastructure.audit.AuditTrailWriterImpl
 import com.fincore.ledger.infrastructure.outbox.OutboxEventPublisherImpl
 import com.fincore.ledger.infrastructure.persistence.AccountPersistenceAdapter
 import com.fincore.ledger.infrastructure.persistence.OutboxEventRepository
@@ -43,6 +44,7 @@ import java.math.BigDecimal
     AccountPersistenceAdapter::class,
     TransactionReversalIT.JacksonConfig::class,
     OutboxEventPublisherImpl::class,
+    AuditTrailWriterImpl::class,
 )
 class TransactionReversalIT(
     @Autowired private val transactionService: TransactionService,
@@ -83,7 +85,7 @@ class TransactionReversalIT(
         val credit = newAccount()
         val original = postBalanced("ref-rev-1", debit.id, credit.id)
 
-        transactionService.reverse(original.id, "op", "corr-2")
+        transactionService.reverse(original.id, "op", "corr-2", null, null)
 
         balanceService.current(debit.id, Currency.USD).amount.isZero() shouldBe true
         balanceService.current(credit.id, Currency.USD).amount.isZero() shouldBe true
@@ -95,7 +97,7 @@ class TransactionReversalIT(
         val credit = newAccount()
         val original = postBalanced("ref-rev-2", debit.id, credit.id)
 
-        val compensating = transactionService.reverse(original.id, "op", "corr-2")
+        val compensating = transactionService.reverse(original.id, "op", "corr-2", null, null)
 
         transactionService.get(original.id).status shouldBe TransactionStatus.REVERSED
         val detail = transactionService.get(compensating.id)
@@ -109,10 +111,10 @@ class TransactionReversalIT(
         val debit = newAccount()
         val credit = newAccount()
         val original = postBalanced("ref-rev-3", debit.id, credit.id)
-        transactionService.reverse(original.id, "op", "corr-2")
+        transactionService.reverse(original.id, "op", "corr-2", null, null)
 
         shouldThrow<TransactionAlreadyReversedException> {
-            transactionService.reverse(original.id, "op", "corr-3")
+            transactionService.reverse(original.id, "op", "corr-3", null, null)
         }
     }
 
@@ -122,7 +124,7 @@ class TransactionReversalIT(
         val credit = newAccount()
         val original = postBalanced("ref-rev-4", debit.id, credit.id)
 
-        transactionService.reverse(original.id, "op", "corr-2")
+        transactionService.reverse(original.id, "op", "corr-2", null, null)
 
         outboxRepository.findAll().size shouldBe 2
     }

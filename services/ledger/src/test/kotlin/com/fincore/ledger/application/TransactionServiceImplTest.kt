@@ -86,26 +86,26 @@ class TransactionServiceImplTest {
     fun `should reverse through the poster`() {
         val id = TransactionId.generate()
         val compensating = PostedTransaction(TransactionId.generate(), "reversal-of-$id", TransactionStatus.POSTED, Instant.now())
-        every { poster.postReversal(id, "op", "corr-1") } returns compensating
+        every { poster.postReversal(id, "op", "corr-1", null, null) } returns compensating
 
-        service.reverse(id, "op", "corr-1") shouldBe compensating
+        service.reverse(id, "op", "corr-1", null, null) shouldBe compensating
 
-        verify(exactly = 1) { poster.postReversal(id, "op", "corr-1") }
+        verify(exactly = 1) { poster.postReversal(id, "op", "corr-1", null, null) }
     }
 
     @Test
     fun `should retry reverse on an optimistic lock failure then succeed`() {
         val id = TransactionId.generate()
         var calls = 0
-        every { poster.postReversal(id, "op", null) } answers {
+        every { poster.postReversal(id, "op", null, null, null) } answers {
             calls++
             if (calls < 2) throw OptimisticLockingFailureException("version conflict")
             PostedTransaction(TransactionId.generate(), "reversal-of-$id", TransactionStatus.POSTED, Instant.now())
         }
 
-        service.reverse(id, "op", null)
+        service.reverse(id, "op", null, null, null)
 
-        verify(exactly = 2) { poster.postReversal(id, "op", null) }
+        verify(exactly = 2) { poster.postReversal(id, "op", null, null, null) }
     }
 
     private val postedAt = Instant.parse("2026-06-12T08:00:00Z")

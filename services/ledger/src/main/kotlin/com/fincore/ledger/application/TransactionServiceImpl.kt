@@ -29,7 +29,9 @@ class TransactionServiceImpl(
         id: TransactionId,
         actor: String,
         correlationId: String?,
-    ): PostedTransaction = withOptimisticRetry { poster.postReversal(id, actor, correlationId) }
+        reason: String?,
+        requestHash: String?,
+    ): PostedTransaction = withOptimisticRetry { poster.postReversal(id, actor, correlationId, reason, requestHash) }
 
     @Transactional(readOnly = true)
     override fun get(id: TransactionId): TransactionDetail {

@@ -15,7 +15,7 @@ class IdempotencyServiceImpl(
     override fun execute(
         key: IdempotencyKey,
         requestBody: String,
-        action: () -> StoredResponse,
+        action: (String) -> StoredResponse,
     ): IdempotentResult {
         val keyHash = sha256Hex(key.value)
         val requestHash = sha256Hex(requestBody)

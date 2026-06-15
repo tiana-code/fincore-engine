@@ -293,7 +293,7 @@ class TransactionControllerTest(
     @Test
     fun `should reverse a transaction and return 201 with location and the compensating transaction`() {
         val compensatingId = TransactionId.generate()
-        every { transactionService.reverse(any(), "user-123", any()) } returns
+        every { transactionService.reverse(any(), "user-123", any(), any(), any()) } returns
             PostedTransaction(compensatingId, "reversal-of-tx", TransactionStatus.POSTED, Instant.parse("2026-06-13T10:00:00Z"))
 
         reverse(TransactionId.generate().toString())
@@ -305,14 +305,15 @@ class TransactionControllerTest(
 
     @Test
     fun `should return 404 when reversing an unknown transaction`() {
-        every { transactionService.reverse(any(), any(), any()) } throws TransactionNotFoundException(TransactionId.generate())
+        every { transactionService.reverse(any(), any(), any(), any(), any()) } throws
+            TransactionNotFoundException(TransactionId.generate())
 
         reverse(TransactionId.generate().toString()).andExpect(status().isNotFound)
     }
 
     @Test
     fun `should return 409 when reversing an already reversed transaction`() {
-        every { transactionService.reverse(any(), any(), any()) } throws
+        every { transactionService.reverse(any(), any(), any(), any(), any()) } throws
             TransactionAlreadyReversedException(TransactionId.generate())
 
         reverse(TransactionId.generate().toString()).andExpect(status().isConflict)
@@ -322,7 +323,7 @@ class TransactionControllerTest(
     fun `should reject a reverse without an idempotency key with 400`() {
         reverse(TransactionId.generate().toString(), withKey = false).andExpect(status().isBadRequest)
 
-        verify(exactly = 0) { transactionService.reverse(any(), any(), any()) }
+        verify(exactly = 0) { transactionService.reverse(any(), any(), any(), any(), any()) }
     }
 
     @Test

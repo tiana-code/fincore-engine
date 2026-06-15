@@ -497,4 +497,12 @@ class LedgerSchemaMigrationIT {
             }
         }
     }
+
+    @Test
+    fun `should add a nullable jsonb payload column on audit_events`() {
+        testDb.boolQuery(
+            "SELECT data_type = 'jsonb' AND is_nullable = 'YES' FROM information_schema.columns " +
+                "WHERE table_schema = 'platform' AND table_name = 'audit_events' AND column_name = 'payload'",
+        ) shouldBe true
+    }
 }

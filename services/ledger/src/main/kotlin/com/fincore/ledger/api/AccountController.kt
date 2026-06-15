@@ -95,8 +95,8 @@ class AccountController(
     ): ResponseEntity<String> {
         var location: URI? = null
         val result =
-            idempotencyService.execute(IdempotencyKey.of(key), rawBody) {
-                val response = mapper.toResponse(accountService.create(mapper.toCommand(request, jwt.subject)))
+            idempotencyService.execute(IdempotencyKey.of(key), rawBody) { hash ->
+                val response = mapper.toResponse(accountService.create(mapper.toCommand(request, jwt.subject, hash)))
                 location = URI.create("/v1/accounts/${response.id}")
                 StoredResponse(HttpStatus.CREATED.value(), objectMapper.writeValueAsString(response))
             }

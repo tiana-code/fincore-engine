@@ -13,6 +13,7 @@ import com.fincore.ledger.domain.enum.EntryDirection
 import com.fincore.ledger.domain.exception.DomainException
 import com.fincore.ledger.domain.exception.DoubleEntryViolationException
 import com.fincore.ledger.domain.exception.DuplicateTransactionException
+import com.fincore.ledger.infrastructure.audit.AuditTrailWriterImpl
 import com.fincore.ledger.infrastructure.outbox.OutboxEventPublisherImpl
 import com.fincore.ledger.infrastructure.persistence.AccountPersistenceAdapter
 import com.fincore.ledger.infrastructure.persistence.OutboxEventRepository
@@ -45,6 +46,7 @@ import java.time.Instant
     AccountPersistenceAdapter::class,
     TransactionBalanceServiceIT.JacksonConfig::class,
     OutboxEventPublisherImpl::class,
+    AuditTrailWriterImpl::class,
 )
 class TransactionBalanceServiceIT(
     @Autowired private val transactionService: TransactionService,

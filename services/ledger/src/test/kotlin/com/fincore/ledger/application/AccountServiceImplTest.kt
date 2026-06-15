@@ -29,7 +29,8 @@ import java.util.UUID
 class AccountServiceImplTest {
     private val accountRepository = mockk<AccountRepository>()
     private val balanceRepository = mockk<AccountBalanceRepository>()
-    private val service = AccountServiceImpl(accountRepository, balanceRepository, AccountPersistenceAdapter())
+    private val auditWriter = mockk<AuditTrailWriter>(relaxed = true)
+    private val service = AccountServiceImpl(accountRepository, balanceRepository, AccountPersistenceAdapter(), auditWriter)
 
     private val now = Instant.parse("2026-06-05T12:00:00Z")
 

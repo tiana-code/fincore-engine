@@ -26,7 +26,7 @@ class IdempotencyStore(
     fun runOrReplay(
         keyHash: String,
         requestHash: String,
-        action: () -> StoredResponse,
+        action: (String) -> StoredResponse,
     ): IdempotentResult {
         val now = Instant.now()
         val existing = repository.findById(keyHash).orElse(null)
@@ -46,7 +46,7 @@ class IdempotencyStore(
         } catch (duplicate: DataIntegrityViolationException) {
             throw IdempotencyRaceException(duplicate)
         }
-        val response = action()
+        val response = action(requestHash)
         reservation.statusCode = response.statusCode
         reservation.responseBody = response.responseBody
         repository.saveAndFlush(reservation)
