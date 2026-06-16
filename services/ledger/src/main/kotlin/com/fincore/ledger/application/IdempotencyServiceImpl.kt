@@ -4,6 +4,7 @@
 package com.fincore.ledger.application
 
 import com.fincore.core.IdempotencyKey
+import com.fincore.ledger.config.IdempotencyProperties
 import com.fincore.ledger.domain.exception.ConcurrencyConflictException
 import org.springframework.dao.OptimisticLockingFailureException
 import org.springframework.stereotype.Service
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service
 @Service
 class IdempotencyServiceImpl(
     private val store: IdempotencyStore,
+    private val properties: IdempotencyProperties,
 ) : IdempotencyService {
     override fun execute(
         key: IdempotencyKey,
@@ -34,14 +36,10 @@ class IdempotencyServiceImpl(
                 return store.runOrReplay(keyHash, requestHash, action)
             } catch (lock: OptimisticLockingFailureException) {
                 attempt++
-                if (attempt >= MAX_ATTEMPTS) throw ConcurrencyConflictException(lock)
+                if (attempt >= properties.maxAttempts) throw ConcurrencyConflictException(lock)
             } catch (race: IdempotencyRaceException) {
                 return store.runOrReplay(keyHash, requestHash, action)
             }
         }
-    }
-
-    companion object {
-        const val MAX_ATTEMPTS = 3
     }
 }
