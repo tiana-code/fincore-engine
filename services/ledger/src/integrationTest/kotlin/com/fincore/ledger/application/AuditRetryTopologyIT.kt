@@ -76,6 +76,7 @@ import java.util.concurrent.atomic.AtomicInteger
     AuditTrailWriterImpl::class,
     OutboxEventPublisherImpl::class,
     AuditRetryTopologyIT.JacksonConfig::class,
+    MetricsTestConfig::class,
 )
 class AuditRetryTopologyIT(
     @Autowired private val accountService: AccountService,

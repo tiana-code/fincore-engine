@@ -39,6 +39,7 @@ import java.time.Instant
 import java.util.UUID
 
 @Component
+@Suppress("LongParameterList")
 class TransactionPoster(
     private val accountRepository: AccountRepository,
     private val transactionRepository: TransactionRepository,
@@ -47,6 +48,7 @@ class TransactionPoster(
     private val outboxEventPublisher: OutboxEventPublisher,
     private val auditWriter: AuditTrailWriter,
     private val adapter: TransactionPersistenceAdapter,
+    private val ledgerMetrics: LedgerMetrics,
 ) {
     @Transactional
     fun post(command: PostTransactionCommand): PostedTransaction {
@@ -70,6 +72,7 @@ class TransactionPoster(
                 requestHash = command.requestHash,
             ),
         )
+        ledgerMetrics.recordPost()
         return PostedTransaction(transaction.id, transaction.reference, transaction.status, postedAt)
     }
 
@@ -96,6 +99,7 @@ class TransactionPoster(
             throw TransactionAlreadyReversedException(originalId, conflict)
         }
         recordReversalAudit(originalId, actor, requestHash, reason, compensating.id.toString())
+        ledgerMetrics.recordReversal()
         return PostedTransaction(compensating.id, compensating.reference, compensating.status, postedAt)
     }
 

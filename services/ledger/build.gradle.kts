@@ -39,7 +39,9 @@ dependencies {
     runtimeOnly(libs.postgres.jdbc)
 
     implementation(libs.micrometer.registry.prometheus)
+    implementation(libs.micrometer.tracing.bridge.otel)
     implementation(libs.opentelemetry.api)
+    implementation(libs.opentelemetry.exporter.otlp)
 
     testImplementation(project(":libs:fincore-test-support"))
     testImplementation(libs.spring.boot.starter.test)

@@ -28,6 +28,7 @@ import com.fincore.ledger.infrastructure.persistence.TransactionPersistenceAdapt
 import com.fincore.ledger.infrastructure.persistence.TransactionRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
@@ -45,6 +46,8 @@ class TransactionPosterTest {
     private val balanceRepository = mockk<AccountBalanceRepository>()
     private val outboxEventPublisher = mockk<OutboxEventPublisher>()
     private val auditWriter = mockk<AuditTrailWriter>(relaxed = true)
+    private val registry = SimpleMeterRegistry()
+    private val ledgerMetrics = LedgerMetrics(registry)
     private val poster =
         TransactionPoster(
             accountRepository,
@@ -54,7 +57,10 @@ class TransactionPosterTest {
             outboxEventPublisher,
             auditWriter,
             TransactionPersistenceAdapter(),
+            ledgerMetrics,
         )
+
+    private fun postedCount(type: String) = registry.counter("ledger.transactions.posted", "type", type).count()
 
     private val now = Instant.parse("2026-06-05T12:00:00Z")
     private val accountA = UUID.randomUUID()
@@ -105,6 +111,7 @@ class TransactionPosterTest {
         verify(exactly = 2) { entryRepository.saveAndFlush(any()) }
         verify(exactly = 2) { balanceRepository.saveAndFlush(any()) }
         verify(exactly = 1) { outboxEventPublisher.publish(any(), any(), any(), any(), any()) }
+        postedCount("post") shouldBe 1.0
     }
 
     @Test
@@ -150,6 +157,7 @@ class TransactionPosterTest {
         shouldThrow<DuplicateTransactionException> { poster.post(command()) }
 
         verify(exactly = 0) { transactionRepository.saveAndFlush(any()) }
+        postedCount("post") shouldBe 0.0
     }
 
     private fun transactionEntity(
@@ -192,6 +200,7 @@ class TransactionPosterTest {
         entrySlots[1].direction shouldBe EntryDirection.DEBIT
         entrySlots[1].amount.compareTo(BigDecimal("100.00")) shouldBe 0
         verify(exactly = 1) { outboxEventPublisher.publish(any(), any(), any(), any(), any()) }
+        postedCount("reversal") shouldBe 1.0
     }
 
     @Test
