@@ -47,6 +47,7 @@ import java.time.Instant
     TransactionBalanceServiceIT.JacksonConfig::class,
     OutboxEventPublisherImpl::class,
     AuditTrailWriterImpl::class,
+    MetricsTestConfig::class,
 )
 class TransactionBalanceServiceIT(
     @Autowired private val transactionService: TransactionService,

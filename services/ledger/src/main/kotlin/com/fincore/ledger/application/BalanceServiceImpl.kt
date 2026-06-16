@@ -17,6 +17,7 @@ import java.time.Instant
 class BalanceServiceImpl(
     private val balanceRepository: AccountBalanceRepository,
     private val entryRepository: EntryRepository,
+    private val ledgerMetrics: LedgerMetrics,
 ) : BalanceService {
     @Transactional(readOnly = true)
     override fun current(
@@ -24,6 +25,7 @@ class BalanceServiceImpl(
         currency: Currency,
     ): AccountBalance {
         val row = balanceRepository.findById(AccountBalanceKey(accountId.value, currency.code)).orElse(null)
+        ledgerMetrics.recordBalanceRead()
         return if (row == null) {
             AccountBalance(accountId, Money.zero(currency), null)
         } else {
@@ -38,6 +40,7 @@ class BalanceServiceImpl(
         instant: Instant,
     ): AccountBalance {
         val sum = entryRepository.sumAmount(accountId.value, currency.code, instant)
+        ledgerMetrics.recordBalanceRead()
         return AccountBalance(accountId, Money.of(sum, currency), null)
     }
 }

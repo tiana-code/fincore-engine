@@ -43,6 +43,7 @@ import java.time.Instant
     AccountEntriesIT.JacksonConfig::class,
     OutboxEventPublisherImpl::class,
     AuditTrailWriterImpl::class,
+    MetricsTestConfig::class,
 )
 class AccountEntriesIT(
     @Autowired private val entryQueryService: EntryQueryService,

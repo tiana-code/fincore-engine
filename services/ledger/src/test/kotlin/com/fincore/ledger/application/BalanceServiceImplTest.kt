@@ -10,6 +10,7 @@ import com.fincore.ledger.infrastructure.persistence.AccountBalanceKey
 import com.fincore.ledger.infrastructure.persistence.AccountBalanceRepository
 import com.fincore.ledger.infrastructure.persistence.EntryRepository
 import io.kotest.matchers.shouldBe
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
@@ -20,8 +21,11 @@ import java.util.Optional
 class BalanceServiceImplTest {
     private val balanceRepository = mockk<AccountBalanceRepository>()
     private val entryRepository = mockk<EntryRepository>()
-    private val service = BalanceServiceImpl(balanceRepository, entryRepository)
+    private val registry = SimpleMeterRegistry()
+    private val service = BalanceServiceImpl(balanceRepository, entryRepository, LedgerMetrics(registry))
     private val accountId = AccountId.generate()
+
+    private fun balanceReads() = registry.counter("ledger.balance.reads").count()
 
     @Test
     fun `should return zero when no balance row exists`() {
@@ -54,5 +58,17 @@ class BalanceServiceImplTest {
         val balance = service.asOf(accountId, Currency.USD, asOf)
 
         balance.amount.amount.compareTo(BigDecimal("75.00")) shouldBe 0
+    }
+
+    @Test
+    fun `should count one balance read per current and asOf call`() {
+        val key = AccountBalanceKey(accountId.value, "USD")
+        every { balanceRepository.findById(key) } returns Optional.empty()
+        every { entryRepository.sumAmount(accountId.value, "USD", any()) } returns BigDecimal.ZERO
+
+        service.current(accountId, Currency.USD)
+        service.asOf(accountId, Currency.USD, Instant.parse("2026-06-05T12:00:00Z"))
+
+        balanceReads() shouldBe 2.0
     }
 }

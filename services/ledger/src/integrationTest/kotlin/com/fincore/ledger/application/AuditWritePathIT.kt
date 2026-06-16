@@ -62,6 +62,7 @@ import java.security.MessageDigest
     AuditTrailWriterImpl::class,
     OutboxEventPublisherImpl::class,
     AuditWritePathIT.JacksonConfig::class,
+    MetricsTestConfig::class,
 )
 class AuditWritePathIT(
     @Autowired private val accountService: AccountService,

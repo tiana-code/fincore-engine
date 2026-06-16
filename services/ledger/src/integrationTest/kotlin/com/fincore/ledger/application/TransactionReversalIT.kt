@@ -45,6 +45,7 @@ import java.math.BigDecimal
     TransactionReversalIT.JacksonConfig::class,
     OutboxEventPublisherImpl::class,
     AuditTrailWriterImpl::class,
+    MetricsTestConfig::class,
 )
 class TransactionReversalIT(
     @Autowired private val transactionService: TransactionService,

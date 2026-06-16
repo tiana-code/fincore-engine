@@ -11,3 +11,11 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/fincore}
+logging:
+  structured:
+    format:
+      console: ""
+management:
+  tracing:
+    sampling:
+      probability: 1.0
