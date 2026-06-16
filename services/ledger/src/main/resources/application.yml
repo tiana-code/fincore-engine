@@ -36,6 +36,7 @@ management:
         enabled: true
       show-components: always
       show-details: never
+      validate-group-membership: false
       group:
         liveness:
           include: livenessState
