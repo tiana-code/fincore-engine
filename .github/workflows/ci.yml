@@ -85,6 +85,55 @@ jobs:
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    needs: build-test
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assert two named stages and distroless runtime base
+        run: |
+          grep -q 'AS builder' Dockerfile
+          grep -q 'gcr.io/distroless/java21-debian12:nonroot AS runtime' Dockerfile
+
+      - name: Build image
+        run: docker build -t fincore-ledger:ci .
+
+      - name: Assert nonroot runtime user
+        run: |
+          user=$(docker inspect -f '{{.Config.User}}' fincore-ledger:ci)
+          echo "runtime user: $user"
+          [ "$user" = "nonroot" ] || [ "$user" = "65532" ]
+
+      - name: Assert image size under 300 MB
+        run: |
+          size=$(docker image inspect -f '{{.Size}}' fincore-ledger:ci)
+          echo "image size: $((size / 1024 / 1024)) MB"
+          [ "$size" -lt 314572800 ]
+
+      - name: Smoke run (jvm launches the jar and spring boot starts)
+        run: |
+          timeout 90 docker run --rm fincore-ledger:ci --spring.profiles.active=test > out.log 2>&1 || true
+          grep -q 'Starting LedgerApplication' out.log || { cat out.log; exit 1; }
+
+      - name: Trivy image scan (no CRITICAL)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: image
+          image-ref: fincore-ledger:ci
+          severity: CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+        env:
+          TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db
+          TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
+
   lint-security:
     name: Security Scan
     runs-on: ubuntu-latest
