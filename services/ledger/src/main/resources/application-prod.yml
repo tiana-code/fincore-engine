@@ -17,3 +17,7 @@ management:
   tracing:
     sampling:
       probability: ${TRACING_SAMPLING_PROBABILITY:0.1}
+fincore:
+  ledger:
+    cleanup:
+      enabled: true
