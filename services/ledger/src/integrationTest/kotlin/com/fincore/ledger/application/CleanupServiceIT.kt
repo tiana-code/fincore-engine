@@ -19,6 +19,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
 import org.springframework.context.annotation.Import
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
@@ -40,6 +42,17 @@ class CleanupServiceIT(
     fun tearDown() {
         outboxEventRepository.deleteAll()
         idempotencyKeyRepository.deleteAll()
+    }
+
+    companion object {
+        @JvmStatic
+        @DynamicPropertySource
+        fun datasourceProperties(registry: DynamicPropertyRegistry) {
+            registry.add("spring.datasource.url") { PostgresContainerExtension.jdbcUrl }
+            registry.add("spring.datasource.username") { PostgresContainerExtension.username }
+            registry.add("spring.datasource.password") { PostgresContainerExtension.password }
+            registry.add("spring.jpa.hibernate.ddl-auto") { "none" }
+        }
     }
 
     @Test
