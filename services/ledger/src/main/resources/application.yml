@@ -36,12 +36,11 @@ management:
         enabled: true
       show-components: always
       show-details: never
-      validate-group-membership: false
       group:
         liveness:
           include: livenessState
         readiness:
-          include: readinessState,db,liquibase
+          include: readinessState,db
   endpoints:
     web:
       exposure:

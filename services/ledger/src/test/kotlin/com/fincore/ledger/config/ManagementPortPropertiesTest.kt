@@ -29,10 +29,10 @@ class ManagementPortPropertiesTest {
     }
 
     @Test
-    fun `should expose liveness as jvm state only and readiness with database and migration state`() {
+    fun `should expose liveness as jvm state only and readiness with database connectivity`() {
         base.getProperty("management.endpoint.health.probes.enabled") shouldBe true
         base.getProperty("management.endpoint.health.group.liveness.include") shouldBe "livenessState"
-        base.getProperty("management.endpoint.health.group.readiness.include") shouldBe "readinessState,db,liquibase"
+        base.getProperty("management.endpoint.health.group.readiness.include") shouldBe "readinessState,db"
     }
 
     @Test

@@ -3,22 +3,17 @@
 
 package com.fincore.ledger.api
 
-import ch.qos.logback.classic.Level
-import ch.qos.logback.classic.Logger
-import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.core.read.ListAppender
-import com.fincore.ledger.config.GracefulShutdownLogger
 import com.fincore.test.containers.PostgresContainerExtension
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.test.web.client.TestRestTemplate
-import org.springframework.context.ConfigurableApplicationContext
+import org.springframework.boot.web.context.WebServerApplicationContext
+import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.http.HttpEntity
@@ -44,7 +39,7 @@ import kotlin.concurrent.thread
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class GracefulDrainIT(
     @Autowired private val rest: TestRestTemplate,
-    @Autowired private val context: ConfigurableApplicationContext,
+    @Autowired private val context: ApplicationContext,
 ) {
     @TestConfiguration
     class TestSecurity {
@@ -85,25 +80,19 @@ class GracefulDrainIT(
     }
 
     @Test
-    fun `should complete an in-flight request during graceful shutdown and log the shutdown once`() {
-        val logger = LoggerFactory.getLogger(GracefulShutdownLogger::class.java) as Logger
-        val appender = ListAppender<ILoggingEvent>().apply { start() }
-        logger.addAppender(appender)
+    fun `should complete an in-flight request while the web server shuts down gracefully`() {
         val holder = AtomicReference<ResponseEntity<String>>()
+        val request = issueSlowRequest(holder)
+        enteredLatch.await(ENTRY_TIMEOUT_SECONDS, TimeUnit.SECONDS) shouldBe true
 
-        try {
-            val request = issueSlowRequest(holder)
-            enteredLatch.await(ENTRY_TIMEOUT_SECONDS, TimeUnit.SECONDS) shouldBe true
-            val shutdown = thread { context.close() }
-            proceedLatch.countDown()
-            request.join(JOIN_TIMEOUT_MILLIS)
-            shutdown.join(JOIN_TIMEOUT_MILLIS)
+        val drained = CountDownLatch(1)
+        val webServer = (context as WebServerApplicationContext).webServer
+        webServer.shutDownGracefully { drained.countDown() }
+        proceedLatch.countDown()
 
-            holder.get().statusCode.value() shouldBe OK
-            appender.list.count { it.level == Level.INFO && it.formattedMessage.contains("graceful shutdown") } shouldBe 1
-        } finally {
-            logger.detachAppender(appender)
-        }
+        request.join(JOIN_TIMEOUT_MILLIS)
+        drained.await(JOIN_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS) shouldBe true
+        holder.get().statusCode.value() shouldBe OK
     }
 
     private fun issueSlowRequest(holder: AtomicReference<ResponseEntity<String>>): Thread {

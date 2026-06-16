@@ -56,14 +56,13 @@ class HealthProbesIT(
     }
 
     @Test
-    fun `should serve the readiness probe without a token aggregating database and migration state`() {
+    fun `should serve the readiness probe without a token aggregating database connectivity`() {
         val response = rest.getForEntity("/actuator/health/readiness", String::class.java)
 
         response.statusCode.value() shouldBe OK
         val components = objectMapper.readTree(response.body).get("components")
         components.shouldNotBeNull()
         components.get("db").get("status").asText() shouldBe "UP"
-        components.get("liquibase").get("status").asText() shouldBe "UP"
     }
 
     @Test
