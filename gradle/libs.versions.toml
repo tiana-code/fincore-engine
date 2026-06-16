@@ -11,8 +11,6 @@ kotest = "5.9.1"
 mockk = "1.13.13"
 junit = "5.11.4"
 ulid = "5.2.3"
-micrometer = "1.13.7"
-opentelemetry = "1.41.0"
 ktlint = "1.5.0"
 detekt = "1.23.8"
 springdoc = "2.7.0"
@@ -62,10 +60,10 @@ mapstruct-core = { module = "org.mapstruct:mapstruct", version.ref = "mapstruct"
 mapstruct-processor = { module = "org.mapstruct:mapstruct-processor", version.ref = "mapstruct" }
 
 # Observability
-micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "micrometer" }
-micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
+micrometer-core = { module = "io.micrometer:micrometer-core" }
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 micrometer-tracing-bridge-otel = { module = "io.micrometer:micrometer-tracing-bridge-otel" }
-opentelemetry-api = { module = "io.opentelemetry:opentelemetry-api", version.ref = "opentelemetry" }
+opentelemetry-api = { module = "io.opentelemetry:opentelemetry-api" }
 opentelemetry-exporter-otlp = { module = "io.opentelemetry:opentelemetry-exporter-otlp" }
 
 # OpenAPI / Springdoc

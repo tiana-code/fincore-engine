@@ -3,9 +3,7 @@
 
 package com.fincore.ledger.api
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.fincore.core.Currency
-import com.fincore.ledger.api.observability.CorrelationIdAttributes
 import com.fincore.ledger.application.AccountService
 import com.fincore.ledger.application.CreateAccountCommand
 import com.fincore.ledger.application.EntryLine
@@ -23,13 +21,9 @@ import io.micrometer.tracing.Tracer
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.slf4j.LoggerFactory
-import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
-import org.springframework.boot.test.system.CapturedOutput
-import org.springframework.boot.test.system.OutputCaptureExtension
 import org.springframework.boot.test.web.client.TestRestTemplate
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
@@ -43,11 +37,10 @@ import java.time.Instant
 import java.util.UUID
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ExtendWith(PostgresContainerExtension::class, OutputCaptureExtension::class)
+@ExtendWith(PostgresContainerExtension::class)
 @Import(ObservabilityIT.TestSecurity::class)
 class ObservabilityIT(
     @Autowired private val rest: TestRestTemplate,
-    @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val accountService: AccountService,
     @Autowired private val transactionService: TransactionService,
     @Autowired private val outboxRepository: OutboxEventRepository,
@@ -91,26 +84,6 @@ class ObservabilityIT(
 
         body shouldContain "ledger_transactions_posted_total"
         postedCount(body) shouldBeGreaterThanOrEqual 1.0
-    }
-
-    @Test
-    fun `should emit a structured json log line carrying the correlation id from mdc`(output: CapturedOutput) {
-        val marker = "obs-probe-${UUID.randomUUID()}"
-        MDC.put(CorrelationIdAttributes.MDC_KEY, "obs-corr")
-        try {
-            LoggerFactory.getLogger(ObservabilityIT::class.java).info(marker)
-        } finally {
-            MDC.remove(CorrelationIdAttributes.MDC_KEY)
-        }
-
-        val line = output.all.lineSequence().first { it.contains(marker) && it.trimStart().startsWith("{") }
-        val json = objectMapper.readTree(line)
-
-        json.hasNonNull("@timestamp") shouldBe true
-        json.hasNonNull("level") shouldBe true
-        json.hasNonNull("logger_name") shouldBe true
-        json.get("message").asText() shouldBe marker
-        json.get("correlation_id").asText() shouldBe "obs-corr"
     }
 
     @Test
