@@ -30,7 +30,7 @@ info:
     Cursor-based. Order is deterministic: created_at DESC, id DESC. Responses include `nextCursor` and `hasMore`. The cursor is opaque and integrity-protected. Use `?cursor=...&limit=...`.
 
     ## Rate limiting
-    Per-IP (100/sec) and per-user (1000/sec). 429 response includes `Retry-After`.
+    Enforced at the API gateway / edge, not by the ledger service (see ADR-0013). Per-IP (100/sec) and per-user (1000/sec); the edge returns `429` with `Retry-After`.
   version: 0.1.0
   license:
     name: BSL 1.1
@@ -1086,7 +1086,7 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
     TooManyRequests:
-      description: Rate limited
+      description: Rate limited at the API gateway / edge, not by the ledger service (see ADR-0013)
       headers:
         Retry-After:
           schema: { type: integer }
