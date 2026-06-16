@@ -8,6 +8,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fincore.core.Currency
 import com.fincore.core.IdempotencyKey
+import com.fincore.ledger.config.IdempotencyProperties
 import com.fincore.ledger.domain.enum.AccountType
 import com.fincore.ledger.domain.enum.AuditAction
 import com.fincore.ledger.domain.enum.EntryDirection
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
 import org.springframework.boot.test.context.TestConfiguration
@@ -61,6 +63,7 @@ import java.util.concurrent.atomic.AtomicInteger
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 @ExtendWith(PostgresContainerExtension::class)
+@EnableConfigurationProperties(IdempotencyProperties::class)
 @Import(
     AccountServiceImpl::class,
     AccountPersistenceAdapter::class,

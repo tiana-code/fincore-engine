@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ledger
+    username: ledger
+    password: ${DB_PASSWORD:ledger}
+  jpa:
+    hibernate:
+      ddl-auto: none
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/fincore}

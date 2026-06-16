@@ -4,6 +4,7 @@
 package com.fincore.ledger.application
 
 import com.fincore.core.IdempotencyKey
+import com.fincore.ledger.config.IdempotencyProperties
 import com.fincore.ledger.domain.exception.ConcurrencyConflictException
 import com.fincore.ledger.domain.exception.IdempotencyConflictException
 import io.kotest.assertions.throwables.shouldThrow
@@ -16,7 +17,7 @@ import org.springframework.dao.OptimisticLockingFailureException
 
 class IdempotencyServiceImplTest {
     private val store = mockk<IdempotencyStore>()
-    private val service = IdempotencyServiceImpl(store)
+    private val service = IdempotencyServiceImpl(store, IdempotencyProperties(maxAttempts = DEFAULT_ATTEMPTS))
     private val key = IdempotencyKey.of("a".repeat(40))
 
     @Test
@@ -52,7 +53,6 @@ class IdempotencyServiceImplTest {
         }
     }
 
-    // AC-7 / FR-1: retry loop now lives in IdempotencyServiceImpl.execute
     @Test
     fun `should retry in a fresh transaction when the action hits an optimistic lock then succeed`() {
         var calls = 0
@@ -69,7 +69,6 @@ class IdempotencyServiceImplTest {
         verify(exactly = 2) { store.runOrReplay(any(), any(), any()) }
     }
 
-    // AC-7 / FR-2 / INV-4: exactly 3 total invocations (not 4) on full failure
     @Test
     fun `should fail with a concurrency conflict after exhausting optimistic retries`() {
         every { store.runOrReplay(any(), any(), any()) } throws OptimisticLockingFailureException("version conflict")
@@ -81,7 +80,19 @@ class IdempotencyServiceImplTest {
         verify(exactly = 3) { store.runOrReplay(any(), any(), any()) }
     }
 
-    // OQ-4: IdempotencyRaceException does not consume an OLF attempt; race is single-shot
+    @Test
+    fun `should honor a configured retry ceiling instead of a hardcoded count`() {
+        val ceiling = 5
+        val configured = IdempotencyServiceImpl(store, IdempotencyProperties(maxAttempts = ceiling))
+        every { store.runOrReplay(any(), any(), any()) } throws OptimisticLockingFailureException("version conflict")
+
+        shouldThrow<ConcurrencyConflictException> {
+            configured.execute(key, "{}") { StoredResponse(201, "{}") }
+        }
+
+        verify(exactly = ceiling) { store.runOrReplay(any(), any(), any()) }
+    }
+
     @Test
     fun `should not consume an optimistic attempt when an idempotency race is resolved`() {
         var calls = 0
@@ -94,7 +105,11 @@ class IdempotencyServiceImplTest {
         val result = service.execute(key, "{}") { StoredResponse(200, "{}") }
 
         result.replayed shouldBe true
-        // exactly 2 calls: original + race-replay; the race does not count toward MAX_ATTEMPTS
+        // exactly 2 calls: original + race-replay; the race does not count toward the retry ceiling
         verify(exactly = 2) { store.runOrReplay(any(), any(), any()) }
+    }
+
+    private companion object {
+        const val DEFAULT_ATTEMPTS = 3
     }
 }

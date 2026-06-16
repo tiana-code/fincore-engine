@@ -1,11 +1,22 @@
+server:
+  port: 8080
 spring:
   application:
     name: ledger-service
+  jpa:
+    hibernate:
+      ddl-auto: none
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
   security:
     oauth2:
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI}
+fincore:
+  ledger:
+    idempotency:
+      max-attempts: 3
 springdoc:
   api-docs:
     path: /v3/api-docs
