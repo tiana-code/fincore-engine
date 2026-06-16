@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ledger.fullname" . }}
+  labels:
+    {{- include "ledger.labels" . | nindent 4 }}
+data:
+  SPRING_PROFILES_ACTIVE: {{ .Values.config.springProfilesActive | quote }}
+  KEYCLOAK_ISSUER_URI: {{ .Values.config.keycloakIssuerUri | quote }}
+  OTLP_TRACING_ENDPOINT: {{ .Values.config.otlpTracingEndpoint | quote }}
+  FINCORE_LEDGER_CLEANUP_ENABLED: {{ .Values.config.cleanupEnabled | quote }}
+  SPRING_DATASOURCE_URL: {{ .Values.config.datasourceUrl | quote }}
+  SPRING_DATASOURCE_USERNAME: {{ .Values.config.datasourceUsername | quote }}

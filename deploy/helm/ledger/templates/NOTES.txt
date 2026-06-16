@@ -1,0 +1,14 @@
+The ledger service has been deployed as release {{ .Release.Name }}.
+
+Service (ClusterIP) reachable in-cluster at:
+  {{ include "ledger.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+Probe a pod locally with port-forward:
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "ledger.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  curl http://localhost:{{ .Values.service.port }}/actuator/health/readiness
+
+{{- if not .Values.existingSecret }}
+
+WARNING: existingSecret is empty. Set existingSecret to a Secret holding keys
+"{{ .Values.secretKeys.datasourcePassword }}" and "{{ .Values.secretKeys.keycloakClientSecret }}" before running against a real database.
+{{- end }}
