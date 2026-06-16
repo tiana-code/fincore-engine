@@ -41,6 +41,7 @@ import java.util.UUID
 @Import(ObservabilityIT.TestSecurity::class)
 class ObservabilityIT(
     @Autowired private val rest: TestRestTemplate,
+    @Autowired private val meterRegistry: io.micrometer.core.instrument.MeterRegistry,
     @Autowired private val accountService: AccountService,
     @Autowired private val transactionService: TransactionService,
     @Autowired private val outboxRepository: OutboxEventRepository,
@@ -66,6 +67,13 @@ class ObservabilityIT(
     @AfterEach
     fun cleanOutbox() {
         outboxRepository.deleteAll()
+    }
+
+    @Test
+    fun `diagnostic direct scrape`() {
+        val pmr = meterRegistry as io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+        val scraped = pmr.scrape()
+        scraped shouldContain "# TYPE"
     }
 
     @Test
