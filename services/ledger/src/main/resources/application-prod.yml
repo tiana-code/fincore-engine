@@ -12,6 +12,8 @@ spring:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI}
 management:
+  server:
+    port: 9090
   tracing:
     sampling:
       probability: ${TRACING_SAMPLING_PROBABILITY:0.1}
