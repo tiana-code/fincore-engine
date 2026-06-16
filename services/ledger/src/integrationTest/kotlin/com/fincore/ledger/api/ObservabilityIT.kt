@@ -22,6 +22,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.test.web.client.TestRestTemplate
@@ -37,11 +38,11 @@ import java.time.Instant
 import java.util.UUID
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureObservability
 @ExtendWith(PostgresContainerExtension::class)
 @Import(ObservabilityIT.TestSecurity::class)
 class ObservabilityIT(
     @Autowired private val rest: TestRestTemplate,
-    @Autowired private val meterRegistry: io.micrometer.core.instrument.MeterRegistry,
     @Autowired private val accountService: AccountService,
     @Autowired private val transactionService: TransactionService,
     @Autowired private val outboxRepository: OutboxEventRepository,
@@ -67,13 +68,6 @@ class ObservabilityIT(
     @AfterEach
     fun cleanOutbox() {
         outboxRepository.deleteAll()
-    }
-
-    @Test
-    fun `diagnostic direct scrape`() {
-        val pmr = meterRegistry as io.micrometer.prometheusmetrics.PrometheusMeterRegistry
-        val scraped = pmr.scrape()
-        scraped shouldContain "# TYPE"
     }
 
     @Test
