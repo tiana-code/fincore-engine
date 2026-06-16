@@ -81,6 +81,39 @@ val integrationTest =
         shouldRunAfter(tasks.named("test"))
     }
 
+// Domain coverage gate (#53): enforce a minimum on com.fincore.ledger.domain only, from the
+// fast unit `test` exec data (no Docker/integrationTest). The rule is aggregate over the whole
+// domain bundle, so a single Kotlin synthetic branch cannot swing it; both counters sit at 1.000
+// today with margin. See docs/plans/domain-coverage-gate/plan.md (DR-7).
+tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+    dependsOn(tasks.test)
+    classDirectories.setFrom(
+        files(
+            classDirectories.files.map { dir ->
+                fileTree(dir) {
+                    include("**/com/fincore/ledger/domain/**")
+                    exclude("**/*MapperImpl*", "**/config/**")
+                }
+            },
+        ),
+    )
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.90".toBigDecimal()
+            }
+            limit {
+                counter = "BRANCH"
+                value = "COVEREDRATIO"
+                minimum = "0.90".toBigDecimal()
+            }
+        }
+    }
+}
+
 tasks.named("check") {
     dependsOn(integrationTest)
+    dependsOn(tasks.named("jacocoTestCoverageVerification"))
 }
