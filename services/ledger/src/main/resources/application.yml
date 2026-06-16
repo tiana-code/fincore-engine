@@ -20,6 +20,10 @@ fincore:
   ledger:
     idempotency:
       max-attempts: 3
+    cleanup:
+      enabled: false
+      cron: "0 0 * * * *"
+      outbox-retention: 30d
 springdoc:
   api-docs:
     path: /v3/api-docs
