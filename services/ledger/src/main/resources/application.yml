@@ -1,8 +1,11 @@
 server:
   port: 8080
+  shutdown: graceful
 spring:
   application:
     name: ledger-service
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   jpa:
     hibernate:
       ddl-auto: none
@@ -27,6 +30,17 @@ logging:
     format:
       console: logstash
 management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-components: always
+      show-details: never
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db,liquibase
   endpoints:
     web:
       exposure:
