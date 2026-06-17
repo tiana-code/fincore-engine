@@ -3,6 +3,7 @@
 
 package com.fincore.ledger.api
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fincore.ledger.api.idempotency.IdempotencyAttributes
 import com.fincore.ledger.api.observability.CorrelationIdAttributes
 import com.fincore.ledger.infrastructure.persistence.AccountRepository
@@ -47,6 +48,7 @@ import java.util.concurrent.atomic.AtomicReference
 @Import(IdempotencyConcurrencyIT.ScopeFromTokenSecurity::class)
 class IdempotencyConcurrencyIT(
     @Autowired private val rest: TestRestTemplate,
+    @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val accountRepository: AccountRepository,
     @Autowired private val outboxRepository: OutboxEventRepository,
 ) {
@@ -99,7 +101,7 @@ class IdempotencyConcurrencyIT(
         statuses shouldHaveSize POSTERS
         statuses.toSet() shouldHaveSize 1
         statuses.first() shouldBe HttpStatus.CREATED.value()
-        bodies.toSet() shouldHaveSize 1
+        bodies.map { objectMapper.readTree(it) }.toSet() shouldHaveSize 1
         accountRepository.findAll().count { it.name == name } shouldBe 1
     }
 
