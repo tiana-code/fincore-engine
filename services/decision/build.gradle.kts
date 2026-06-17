@@ -9,23 +9,30 @@ plugins {
     alias(libs.plugins.spring.dependency.management)
 }
 
-description = "FinCore Decision service: rule and immutable rule-version storage"
+description = "FinCore Decision service: rule storage and rule management REST API"
 
 kotlin {
     jvmToolchain(21)
 }
 
 dependencies {
+    implementation(project(":libs:decision-engine"))
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlin.reflect)
     implementation(libs.jackson.module.kotlin)
 
     implementation(libs.spring.boot.starter.data.jpa)
+    implementation(libs.spring.boot.starter.web)
+    implementation(libs.spring.boot.starter.validation)
+    implementation(libs.spring.boot.starter.security)
+    implementation(libs.spring.boot.starter.oauth2.resource.server)
+    implementation(libs.springdoc.openapi.starter)
     implementation(libs.liquibase.core)
     runtimeOnly(libs.postgres.jdbc)
 
     testImplementation(project(":libs:fincore-test-support"))
     testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.spring.security.test)
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.mockk)
