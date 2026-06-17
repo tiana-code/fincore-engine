@@ -8,6 +8,7 @@ import com.fincore.decision.domain.DecisionResult
 import com.fincore.decision.store.persistence.DecisionLogEntity
 import com.fincore.decision.store.persistence.DecisionLogRepository
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.UUID
 
@@ -20,6 +21,7 @@ class DecisionLogWriter(
     private val decisionLogRepository: DecisionLogRepository,
     private val objectMapper: ObjectMapper,
 ) {
+    @Transactional
     fun write(
         ruleVersionId: UUID,
         inputHash: String,
