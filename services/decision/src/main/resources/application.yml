@@ -21,3 +21,7 @@ fincore:
   decision:
     api:
       max-dsl-chars: 8192
+      evaluation-timeout-millis: 200
+      max-input-attributes: 64
+      max-input-value-chars: 4096
+      max-log-page-size: 100

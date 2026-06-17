@@ -77,7 +77,7 @@ class RuleEvaluator {
         val attrValue =
             input.get(comparison.attr)
                 ?: return absent(comparison.attr, MatchesComparison.TOKEN)
-        val result = attrValue is StringValue && comparison.regex.matches(attrValue.value)
+        val result = attrValue is StringValue && comparison.regex.matches(InterruptibleCharSequence(attrValue.value))
         return evaluated("${comparison.attr} ${MatchesComparison.TOKEN}", result)
     }
 

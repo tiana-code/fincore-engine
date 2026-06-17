@@ -5,9 +5,14 @@ package com.fincore.decision.store.api.mapper
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fincore.decision.store.api.dto.response.ActiveVersionResponse
+import com.fincore.decision.store.api.dto.response.DecisionLogResponse
+import com.fincore.decision.store.api.dto.response.DecisionResponse
+import com.fincore.decision.store.api.dto.response.OutcomeResponse
 import com.fincore.decision.store.api.dto.response.RuleDetailResponse
 import com.fincore.decision.store.api.dto.response.RuleResponse
 import com.fincore.decision.store.api.dto.response.VersionResponse
+import com.fincore.decision.store.application.DecisionLogView
+import com.fincore.decision.store.application.EvaluationOutcome
 import com.fincore.decision.store.application.RuleDetailView
 import com.fincore.decision.store.application.RuleView
 import com.fincore.decision.store.application.VersionView
@@ -32,5 +37,23 @@ class DecisionApiMapper(
                 view.activeVersion?.let {
                     ActiveVersionResponse(it.versionNo, objectMapper.readTree(it.dsl))
                 },
+        )
+
+    fun toResponse(outcome: EvaluationOutcome): DecisionResponse =
+        DecisionResponse(
+            matched = outcome.result.matched,
+            outcome = outcome.result.outcome?.let { OutcomeResponse(it.label, it.reasonCodes) },
+            trace = objectMapper.valueToTree(outcome.result.trace),
+            decisionLogId = outcome.decisionLogId.toString(),
+        )
+
+    fun toLogResponse(view: DecisionLogView): DecisionLogResponse =
+        DecisionLogResponse(
+            id = view.id.toString(),
+            evaluatedAt = view.evaluatedAt,
+            ruleVersionId = view.ruleVersionId.toString(),
+            inputHash = view.inputHash,
+            matched = view.matched,
+            outcomeLabel = view.outcomeLabel,
         )
 }
