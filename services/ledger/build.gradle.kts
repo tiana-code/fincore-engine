@@ -71,6 +71,10 @@ sourceSets {
 configurations["integrationTestImplementation"].extendsFrom(configurations["testImplementation"])
 configurations["integrationTestRuntimeOnly"].extendsFrom(configurations["testRuntimeOnly"])
 
+dependencies {
+    "integrationTestImplementation"(libs.postgres.jdbc)
+}
+
 val integrationTest =
     tasks.register<Test>("integrationTest") {
         description = "Runs integration tests (Spring Boot + Testcontainers)."
