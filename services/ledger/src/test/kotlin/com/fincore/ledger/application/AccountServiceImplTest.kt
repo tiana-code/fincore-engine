@@ -7,6 +7,7 @@ import com.fincore.core.AccountId
 import com.fincore.core.Currency
 import com.fincore.ledger.domain.enum.AccountStatus
 import com.fincore.ledger.domain.enum.AccountType
+import com.fincore.ledger.domain.enum.AuditAction
 import com.fincore.ledger.domain.exception.AccountNotFoundException
 import com.fincore.ledger.domain.exception.DomainException
 import com.fincore.ledger.infrastructure.persistence.AccountBalanceEntity
@@ -21,6 +22,9 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Test
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.Optional
@@ -55,6 +59,46 @@ class AccountServiceImplTest {
         every { accountRepository.findById(any()) } returns Optional.empty()
 
         shouldThrow<AccountNotFoundException> { service.get(AccountId.generate()) }
+    }
+
+    @Test
+    fun `should return the account when it exists`() {
+        val id = UUID.randomUUID()
+        every { accountRepository.findById(id) } returns Optional.of(entity(id, AccountStatus.ACTIVE))
+
+        val account = service.get(AccountId(id))
+
+        account.id shouldBe AccountId(id)
+        account.name shouldBe "Wallet"
+        account.status shouldBe AccountStatus.ACTIVE
+    }
+
+    @Test
+    fun `should rename an account and record the audit`() {
+        val id = UUID.randomUUID()
+        every { accountRepository.findById(id) } returns Optional.of(entity(id, AccountStatus.ACTIVE))
+        every { accountRepository.saveAndFlush(any()) } answers { firstArg() }
+
+        val account = service.rename(AccountId(id), "New name", "op")
+
+        account.name shouldBe "New name"
+        verify { accountRepository.saveAndFlush(any()) }
+        verify { auditWriter.record(match { it.action == AuditAction.ACCOUNT_RENAME }) }
+    }
+
+    @Test
+    fun `should return a page of accounts`() {
+        val id = UUID.randomUUID()
+        every { accountRepository.findAll(any<Pageable>()) } returns
+            PageImpl(listOf(entity(id, AccountStatus.ACTIVE)), PageRequest.of(0, 20), 1)
+
+        val page = service.list(0, 20)
+
+        page.items.single().id shouldBe AccountId(id)
+        page.page shouldBe 0
+        page.size shouldBe 20
+        page.totalElements shouldBe 1
+        page.totalPages shouldBe 1
     }
 
     @Test
