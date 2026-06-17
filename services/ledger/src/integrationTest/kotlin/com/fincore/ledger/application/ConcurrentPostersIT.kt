@@ -105,6 +105,7 @@ class ConcurrentPostersIT(
         val debit = newAccount()
         val credit = newAccount()
         val referencePrefix = "ref-conc-${UUID.randomUUID()}"
+        warmUpBalances(debit.id, credit.id, "$referencePrefix-warmup")
         val successCount = AtomicInteger(0)
         val conflictCount = AtomicInteger(0)
         val unexpected = AtomicReference<Throwable?>(null)
@@ -130,14 +131,28 @@ class ConcurrentPostersIT(
         succeeded shouldBeLessThanOrEqualTo POSTERS
         (succeeded + conflictCount.get()) shouldBe POSTERS
 
-        val expectedDebit = BigDecimal(AMOUNT).multiply(BigDecimal(succeeded))
+        val expectedPostings = succeeded + 1
+        val expectedDebit = BigDecimal(AMOUNT).multiply(BigDecimal(expectedPostings))
         val debitBalance = balanceService.current(debit.id, Currency.USD).amount.amount
         val creditBalance = balanceService.current(credit.id, Currency.USD).amount.amount
         debitBalance.compareTo(expectedDebit) shouldBe 0
         creditBalance.compareTo(expectedDebit.negate()) shouldBe 0
         debitBalance.compareTo(BigDecimal.ZERO) shouldNotBe 0
-        transactionRepository.findAll().count { it.reference.startsWith(referencePrefix) } shouldBe succeeded
-        entryRepository.findAll().count { it.accountId == debit.id.value || it.accountId == credit.id.value } shouldBe 2 * succeeded
+        transactionRepository.findAll().count { it.reference.startsWith(referencePrefix) } shouldBe expectedPostings
+        entryRepository.findAll().count { it.accountId == debit.id.value || it.accountId == credit.id.value } shouldBe 2 * expectedPostings
+    }
+
+    // Post once sequentially so the shared balance rows exist before the burst: the path under test is the
+    // optimistic UPDATE+retry on contended rows, not the cold-start account_balances INSERT race (#152).
+    private fun warmUpBalances(
+        debit: AccountId,
+        credit: AccountId,
+        reference: String,
+    ) {
+        idempotencyService.execute(IdempotencyKey.generate(), body(reference)) { hash ->
+            val posted = transactionService.post(command(reference, debit, credit, hash))
+            StoredResponse(CREATED, """{"id":"${posted.id}"}""")
+        }
     }
 
     @Suppress("TooGenericExceptionCaught", "LongParameterList")
