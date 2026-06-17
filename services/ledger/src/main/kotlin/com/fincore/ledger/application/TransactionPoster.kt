@@ -24,8 +24,6 @@ import com.fincore.ledger.domain.exception.DuplicateTransactionException
 import com.fincore.ledger.domain.exception.TransactionAlreadyReversedException
 import com.fincore.ledger.domain.exception.TransactionNotFoundException
 import com.fincore.ledger.infrastructure.outbox.OutboxEventPublisher
-import com.fincore.ledger.infrastructure.persistence.AccountBalanceEntity
-import com.fincore.ledger.infrastructure.persistence.AccountBalanceKey
 import com.fincore.ledger.infrastructure.persistence.AccountBalanceRepository
 import com.fincore.ledger.infrastructure.persistence.AccountRepository
 import com.fincore.ledger.infrastructure.persistence.EntryEntity
@@ -193,17 +191,16 @@ class TransactionPoster(
         transaction: Transaction,
         postedAt: Instant,
     ) {
-        transaction.entries.forEach { entry ->
-            val key = AccountBalanceKey(entry.accountId.value, entry.amount.currency.code)
-            val existing = balanceRepository.findById(key).orElse(null)
-            if (existing == null) {
-                balanceRepository.saveAndFlush(AccountBalanceEntity(key, entry.amount.amount, postedAt, 0))
-            } else {
-                existing.balance = existing.balance.add(entry.amount.amount)
-                existing.lastPostedAt = postedAt
-                balanceRepository.saveAndFlush(existing)
+        transaction.entries
+            .sortedWith(compareBy({ it.accountId.value }, { it.amount.currency.code }))
+            .forEach { entry ->
+                balanceRepository.upsertBalance(
+                    entry.accountId.value,
+                    entry.amount.currency.code,
+                    entry.amount.amount,
+                    postedAt,
+                )
             }
-        }
     }
 
     private fun emit(
