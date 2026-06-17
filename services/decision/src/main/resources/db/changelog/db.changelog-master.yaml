@@ -13,3 +13,9 @@ databaseChangeLog:
   - include:
       file: v0.2/004-rule-versions-immutability.sql
       relativeToChangelogFile: true
+  - include:
+      file: v0.2/005-decision-logs.sql
+      relativeToChangelogFile: true
+  - include:
+      file: v0.2/006-decision-logs-immutability.sql
+      relativeToChangelogFile: true
