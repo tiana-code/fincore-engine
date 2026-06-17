@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: BUSL-1.1
+# SPDX-FileCopyrightText: 2026 FinCore Engine Authors
+databaseChangeLog:
+  - include:
+      file: v0.2/001-decision-schema.sql
+      relativeToChangelogFile: true
+  - include:
+      file: v0.2/002-decision-rules.sql
+      relativeToChangelogFile: true
+  - include:
+      file: v0.2/003-rule-versions.sql
+      relativeToChangelogFile: true
+  - include:
+      file: v0.2/004-rule-versions-immutability.sql
+      relativeToChangelogFile: true

@@ -26,4 +26,5 @@ include(
     ":libs:fincore-test-support",
     ":libs:decision-engine",
     ":services:ledger",
+    ":services:decision",
 )
