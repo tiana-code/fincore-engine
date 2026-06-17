@@ -11,7 +11,6 @@ import com.fincore.decision.store.persistence.DecisionRuleRepository
 import com.fincore.decision.store.persistence.RuleVersionEntity
 import com.fincore.decision.store.persistence.RuleVersionRepository
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 
 @Service
 class EvaluationServiceImpl(
@@ -23,7 +22,6 @@ class EvaluationServiceImpl(
     private val inputMapper: InputMapper,
     private val logWriter: DecisionLogWriter,
 ) : EvaluationService {
-    @Transactional
     override fun evaluate(
         ruleKey: String,
         attributes: Map<String, JsonNode>,
