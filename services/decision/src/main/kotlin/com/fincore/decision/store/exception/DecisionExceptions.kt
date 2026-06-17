@@ -28,3 +28,18 @@ class VersionConflictException(
     ruleKey: String,
     cause: Throwable? = null,
 ) : RuntimeException("concurrent version publish conflict for rule: $ruleKey", cause)
+
+class RuleNotActiveException(
+    ruleKey: String,
+) : RuntimeException("rule has no active version: $ruleKey")
+
+class EvaluationTimeoutException(
+    budgetMillis: Long,
+    cause: Throwable? = null,
+) : RuntimeException("evaluation exceeded the time budget of ${budgetMillis}ms", cause)
+
+class InputNotMappableException : RuntimeException("input attribute values must be string, number, or boolean")
+
+class InputTooLargeException(
+    max: Int,
+) : RuntimeException("input exceeds the maximum of $max")

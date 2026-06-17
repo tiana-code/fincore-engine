@@ -52,13 +52,32 @@ class GlobalExceptionHandler {
     ): ProblemDetail = problem(ProblemType.VERSION_CONFLICT, ex.message, request)
 
     @ExceptionHandler(ObjectOptimisticLockingFailureException::class)
-    fun handleOptimisticLock(request: HttpServletRequest): ResponseEntity<ProblemDetail> {
-        val body = problem(ProblemType.CONCURRENCY_CONFLICT, "concurrent update, retry", request)
-        return ResponseEntity
-            .status(ProblemType.CONCURRENCY_CONFLICT.status)
-            .header(HttpHeaders.RETRY_AFTER, RETRY_AFTER_SECONDS)
-            .body(body)
-    }
+    fun handleOptimisticLock(request: HttpServletRequest): ResponseEntity<ProblemDetail> =
+        retryable(ProblemType.CONCURRENCY_CONFLICT, "concurrent update, retry", request)
+
+    @ExceptionHandler(RuleNotActiveException::class)
+    fun handleRuleNotActive(
+        ex: RuleNotActiveException,
+        request: HttpServletRequest,
+    ): ProblemDetail = problem(ProblemType.RULE_NOT_ACTIVE, ex.message, request)
+
+    @ExceptionHandler(EvaluationTimeoutException::class)
+    fun handleEvaluationTimeout(
+        ex: EvaluationTimeoutException,
+        request: HttpServletRequest,
+    ): ResponseEntity<ProblemDetail> = retryable(ProblemType.EVALUATION_TIMEOUT, ex.message, request)
+
+    @ExceptionHandler(InputNotMappableException::class)
+    fun handleInputNotMappable(
+        ex: InputNotMappableException,
+        request: HttpServletRequest,
+    ): ProblemDetail = problem(ProblemType.INPUT_NOT_MAPPABLE, ex.message, request)
+
+    @ExceptionHandler(InputTooLargeException::class)
+    fun handleInputTooLarge(
+        ex: InputTooLargeException,
+        request: HttpServletRequest,
+    ): ProblemDetail = problem(ProblemType.INPUT_TOO_LARGE, ex.message, request)
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleValidation(
@@ -88,6 +107,16 @@ class GlobalExceptionHandler {
             "field" to error.field,
             "message" to (error.defaultMessage ?: "invalid"),
         )
+
+    private fun retryable(
+        type: ProblemType,
+        detail: String?,
+        request: HttpServletRequest,
+    ): ResponseEntity<ProblemDetail> =
+        ResponseEntity
+            .status(type.status)
+            .header(HttpHeaders.RETRY_AFTER, RETRY_AFTER_SECONDS)
+            .body(problem(type, detail, request))
 
     private fun problem(
         type: ProblemType,
