@@ -62,9 +62,10 @@ class LatencyBudgetIT(
     fun `should meet p99 latency budgets when ten workers post and read concurrently`() {
         val pairs = setupWorkerAccounts()
         warmUp(pairs)
-        val samples = measure(pairs)
-        assertBudget("POST /v1/transactions", samples.post, POST_BUDGET_MS)
-        assertBudget("GET /v1/accounts/{id}/balance", samples.balance, BALANCE_BUDGET_MS)
+        val postSamples = measureLatencies(pairs) { pair, samples -> postTimed(pair, samples) }
+        val balanceSamples = measureLatencies(pairs) { pair, samples -> balanceTimed(pair.debitId, samples) }
+        assertBudget("POST /v1/transactions", postSamples, POST_BUDGET_MS)
+        assertBudget("GET /v1/accounts/{id}/balance", balanceSamples, BALANCE_BUDGET_MS)
     }
 
     private fun setupWorkerAccounts(): List<AccountPair> =
@@ -89,19 +90,17 @@ class LatencyBudgetIT(
         }
     }
 
-    private fun measure(pairs: List<AccountPair>): Samples {
-        val perWorker = runWorkers(pairs) { measureWorker(it) }
-        return Samples(perWorker.flatMap { it.post }, perWorker.flatMap { it.balance })
-    }
-
-    private fun measureWorker(pair: AccountPair): Samples {
-        val post = ArrayList<Long>(MEASURED)
-        val balance = ArrayList<Long>(MEASURED)
-        repeat(MEASURED) {
-            postTimed(pair, post)
-            balanceTimed(pair.debitId, balance)
-        }
-        return Samples(post, balance)
+    private fun measureLatencies(
+        pairs: List<AccountPair>,
+        call: (AccountPair, MutableList<Long>) -> Unit,
+    ): List<Long> {
+        val perWorker =
+            runWorkers(pairs) { pair ->
+                val samples = ArrayList<Long>(MEASURED)
+                repeat(MEASURED) { call(pair, samples) }
+                samples
+            }
+        return perWorker.flatten()
     }
 
     private fun postTimed(
@@ -188,11 +187,6 @@ class LatencyBudgetIT(
     private data class AccountPair(
         val debitId: String,
         val creditId: String,
-    )
-
-    private class Samples(
-        val post: List<Long>,
-        val balance: List<Long>,
     )
 
     private companion object {
