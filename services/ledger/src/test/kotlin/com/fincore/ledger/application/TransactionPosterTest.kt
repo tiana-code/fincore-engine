@@ -101,15 +101,14 @@ class TransactionPosterTest {
         every { transactionRepository.existsByReference("ref-1") } returns false
         every { transactionRepository.saveAndFlush(any()) } answers { firstArg() }
         every { entryRepository.saveAndFlush(any()) } answers { firstArg() }
-        every { balanceRepository.findById(any()) } returns Optional.empty()
-        every { balanceRepository.saveAndFlush(any()) } answers { firstArg() }
+        justRun { balanceRepository.upsertBalance(any(), any(), any(), any()) }
         justRun { outboxEventPublisher.publish(any(), any(), any(), any(), any()) }
 
         val result = poster.post(command())
 
         result.reference shouldBe "ref-1"
         verify(exactly = 2) { entryRepository.saveAndFlush(any()) }
-        verify(exactly = 2) { balanceRepository.saveAndFlush(any()) }
+        verify(exactly = 2) { balanceRepository.upsertBalance(any(), any(), any(), any()) }
         verify(exactly = 1) { outboxEventPublisher.publish(any(), any(), any(), any(), any()) }
         postedCount("post") shouldBe 1.0
     }
@@ -186,8 +185,7 @@ class TransactionPosterTest {
         val entrySlots = mutableListOf<EntryEntity>()
         every { transactionRepository.saveAndFlush(capture(txSlots)) } answers { firstArg() }
         every { entryRepository.saveAndFlush(capture(entrySlots)) } answers { firstArg() }
-        every { balanceRepository.findById(any()) } returns Optional.empty()
-        every { balanceRepository.saveAndFlush(any()) } answers { firstArg() }
+        justRun { balanceRepository.upsertBalance(any(), any(), any(), any()) }
         justRun { outboxEventPublisher.publish(any(), any(), any(), any(), any()) }
 
         val result = poster.postReversal(originalId, "op", "corr-1", null, null)
