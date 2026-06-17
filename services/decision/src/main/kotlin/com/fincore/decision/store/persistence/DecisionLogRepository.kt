@@ -21,4 +21,6 @@ interface DecisionLogRepository : JpaRepository<DecisionLogEntity, UUID> {
         inputHash: String,
         pageable: Pageable,
     ): List<DecisionLogEntity>
+
+    fun findFirstByInputHashOrderByEvaluatedAtDesc(inputHash: String): DecisionLogEntity?
 }

@@ -8,11 +8,16 @@ import com.fincore.decision.store.api.dto.response.ActiveVersionResponse
 import com.fincore.decision.store.api.dto.response.DecisionLogResponse
 import com.fincore.decision.store.api.dto.response.DecisionResponse
 import com.fincore.decision.store.api.dto.response.OutcomeResponse
+import com.fincore.decision.store.api.dto.response.OutcomeSummaryResponse
+import com.fincore.decision.store.api.dto.response.ReplayDiffResponse
+import com.fincore.decision.store.api.dto.response.ReplayReportResponse
 import com.fincore.decision.store.api.dto.response.RuleDetailResponse
 import com.fincore.decision.store.api.dto.response.RuleResponse
 import com.fincore.decision.store.api.dto.response.VersionResponse
 import com.fincore.decision.store.application.DecisionLogView
 import com.fincore.decision.store.application.EvaluationOutcome
+import com.fincore.decision.store.application.ReplayDiff
+import com.fincore.decision.store.application.ReplayReport
 import com.fincore.decision.store.application.RuleDetailView
 import com.fincore.decision.store.application.RuleView
 import com.fincore.decision.store.application.VersionView
@@ -55,5 +60,22 @@ class DecisionApiMapper(
             inputHash = view.inputHash,
             matched = view.matched,
             outcomeLabel = view.outcomeLabel,
+        )
+
+    fun toResponse(report: ReplayReport): ReplayReportResponse =
+        ReplayReportResponse(
+            total = report.total,
+            unchanged = report.unchanged,
+            changed = report.changed,
+            noBaseline = report.noBaseline,
+            diffs = report.diffs.map(::toDiffResponse),
+        )
+
+    private fun toDiffResponse(diff: ReplayDiff): ReplayDiffResponse =
+        ReplayDiffResponse(
+            inputHash = diff.inputHash,
+            recorded = diff.recordedMatched?.let { OutcomeSummaryResponse(it, diff.recordedLabel) },
+            candidate = OutcomeSummaryResponse(diff.candidateMatched, diff.candidateLabel),
+            status = diff.status.name,
         )
 }
