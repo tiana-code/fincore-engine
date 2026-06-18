@@ -3,8 +3,9 @@
 
 package com.fincore.ledger.config
 
+import com.fincore.eventbus.outbox.OutboxDispatchSettings
+import com.fincore.eventbus.outbox.OutboxDispatcher
 import com.fincore.ledger.application.outbox.OutboxClaimStore
-import com.fincore.ledger.application.outbox.OutboxDispatcher
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -25,7 +26,18 @@ class OutboxDispatchConfig(
     kafkaTemplate: KafkaTemplate<String, String>,
     properties: OutboxDispatcherProperties,
 ) {
-    private val dispatcher = OutboxDispatcher(claimStore, kafkaTemplate, properties)
+    private val dispatcher =
+        OutboxDispatcher(
+            claimStore,
+            kafkaTemplate,
+            OutboxDispatchSettings(
+                batchSize = properties.batchSize,
+                maxAttempts = properties.maxAttempts,
+                leaseTimeout = properties.leaseTimeout,
+                sendTimeout = properties.sendTimeout,
+                topicPrefix = properties.topicPrefix,
+            ),
+        )
 
     @Bean
     fun outboxDispatcher(): OutboxDispatcher = dispatcher
