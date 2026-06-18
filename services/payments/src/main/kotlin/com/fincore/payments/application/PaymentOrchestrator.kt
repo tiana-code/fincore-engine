@@ -32,6 +32,8 @@ class PaymentOrchestrator(
         }
     }
 
+    fun resume(payment: Payment): Payment = route(payment.id, payment)
+
     private fun route(
         id: PaymentId,
         payment: Payment,
