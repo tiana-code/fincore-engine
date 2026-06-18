@@ -5,8 +5,10 @@ package com.fincore.ledger.application.outbox
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fincore.eventbus.EventBusAutoConfiguration
+import com.fincore.eventbus.outbox.DispatchSummary
+import com.fincore.eventbus.outbox.OutboxDispatchSettings
+import com.fincore.eventbus.outbox.OutboxDispatcher
 import com.fincore.events.OutboxStatus
-import com.fincore.ledger.config.OutboxDispatcherProperties
 import com.fincore.ledger.infrastructure.persistence.OutboxEventEntity
 import com.fincore.ledger.infrastructure.persistence.OutboxEventRepository
 import com.fincore.test.containers.PostgresContainerExtension
@@ -46,7 +48,7 @@ class OutboxDispatcherIT(
         OutboxDispatcher(
             claimStore,
             kafkaTemplate,
-            OutboxDispatcherProperties(enabled = true, sendTimeout = Duration.ofSeconds(SEND_TIMEOUT_SECONDS)),
+            OutboxDispatchSettings(sendTimeout = Duration.ofSeconds(SEND_TIMEOUT_SECONDS)),
         )
 
     @AfterEach

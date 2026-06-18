@@ -4,8 +4,10 @@
 package com.fincore.ledger.application.outbox
 
 import com.fincore.eventbus.EventBusAutoConfiguration
+import com.fincore.eventbus.outbox.DispatchSummary
+import com.fincore.eventbus.outbox.OutboxDispatchSettings
+import com.fincore.eventbus.outbox.OutboxDispatcher
 import com.fincore.events.OutboxStatus
-import com.fincore.ledger.config.OutboxDispatcherProperties
 import com.fincore.ledger.infrastructure.persistence.OutboxEventEntity
 import com.fincore.ledger.infrastructure.persistence.OutboxEventRepository
 import com.fincore.test.containers.PostgresContainerExtension
@@ -155,9 +157,8 @@ class OutboxDispatcherFailureIT(
         const val POLL_TIMEOUT_SECONDS = 15L
         const val UNREACHABLE_BOOTSTRAP = "localhost:65000"
 
-        fun props(maxAttempts: Int): OutboxDispatcherProperties =
-            OutboxDispatcherProperties(
-                enabled = true,
+        fun props(maxAttempts: Int): OutboxDispatchSettings =
+            OutboxDispatchSettings(
                 maxAttempts = maxAttempts,
                 sendTimeout = Duration.ofSeconds(SEND_TIMEOUT_SECONDS),
             )

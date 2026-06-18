@@ -1,26 +1,25 @@
 // SPDX-License-Identifier: BUSL-1.1
 // SPDX-FileCopyrightText: 2026 FinCore Engine Authors
 
-package com.fincore.ledger.application.outbox
+package com.fincore.eventbus.outbox
 
-import com.fincore.ledger.config.OutboxDispatcherProperties
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.core.KafkaTemplate
 import java.util.concurrent.TimeUnit
 
 /**
  * Relays claimed outbox events to the broker. Orchestration only - not transactional. Each event is
- * published outside any transaction; settling its outcome is delegated to [OutboxClaimStore].
+ * published outside any transaction; claiming and settling its outcome are delegated to [OutboxStore].
  */
 class OutboxDispatcher(
-    private val claimStore: OutboxClaimStore,
+    private val store: OutboxStore,
     private val kafkaTemplate: KafkaTemplate<String, String>,
-    private val properties: OutboxDispatcherProperties,
+    private val settings: OutboxDispatchSettings,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun dispatch(): DispatchSummary {
-        val claimed = claimStore.claim(properties.maxAttempts, properties.leaseTimeout, properties.batchSize)
+        val claimed = store.claim(settings.maxAttempts, settings.leaseTimeout, settings.batchSize)
         var published = 0
         for (event in claimed) {
             if (publish(event)) published++
@@ -39,14 +38,14 @@ class OutboxDispatcher(
     @Suppress("TooGenericExceptionCaught")
     private fun publish(event: ClaimedEvent): Boolean =
         try {
-            val topic = "${properties.topicPrefix}.${event.aggregateType.lowercase()}"
+            val topic = "${settings.topicPrefix}.${event.aggregateType.lowercase()}"
             kafkaTemplate
                 .send(topic, event.aggregateId, event.payload)
-                .get(properties.sendTimeout.toMillis(), TimeUnit.MILLISECONDS)
-            claimStore.markPublished(event.id)
+                .get(settings.sendTimeout.toMillis(), TimeUnit.MILLISECONDS)
+            store.markPublished(event.id)
             true
         } catch (ex: Exception) {
-            claimStore.markFailed(event.id, event.attempts + 1, properties.maxAttempts, ex.message)
+            store.markFailed(event.id, event.attempts + 1, settings.maxAttempts, ex.message)
             false
         }
 }

@@ -3,6 +3,8 @@
 
 package com.fincore.ledger.application.outbox
 
+import com.fincore.eventbus.outbox.ClaimedEvent
+import com.fincore.eventbus.outbox.OutboxStore
 import com.fincore.events.OutboxStatus
 import com.fincore.ledger.infrastructure.persistence.OutboxEventRepository
 import org.springframework.stereotype.Component
@@ -12,15 +14,15 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Transactional boundary for the dispatcher. Claim and settle are separate short transactions so the
- * broker publish (in [OutboxDispatcher]) never runs inside a DB transaction (CLAUDE.md 8.10).
+ * Ledger-backed [OutboxStore]. Claim and settle are separate short transactions so the broker publish
+ * (in the dispatcher) never runs inside a DB transaction.
  */
 @Component
 class OutboxClaimStore(
     private val repository: OutboxEventRepository,
-) {
+) : OutboxStore {
     @Transactional
-    fun claim(
+    override fun claim(
         maxAttempts: Int,
         leaseTimeout: Duration,
         batchSize: Int,
@@ -42,12 +44,12 @@ class OutboxClaimStore(
     }
 
     @Transactional
-    fun markPublished(id: UUID) {
+    override fun markPublished(id: UUID) {
         repository.markPublished(id, OutboxStatus.PUBLISHED, Instant.now())
     }
 
     @Transactional
-    fun markFailed(
+    override fun markFailed(
         id: UUID,
         attempts: Int,
         maxAttempts: Int,
