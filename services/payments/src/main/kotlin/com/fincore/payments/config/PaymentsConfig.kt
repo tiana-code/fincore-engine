@@ -14,5 +14,6 @@ import org.springframework.context.annotation.Configuration
     PaymentScreeningProperties::class,
     PaymentWebhookProperties::class,
     PaymentRetryProperties::class,
+    PaymentDispatcherProperties::class,
 )
 class PaymentsConfig
