@@ -5,6 +5,8 @@ package com.fincore.payments.exception
 
 import com.fincore.payments.api.error.ProblemType
 import com.fincore.payments.application.PaymentConcurrencyException
+import com.fincore.payments.application.webhook.MalformedWebhookException
+import com.fincore.payments.application.webhook.WebhookSignatureException
 import com.fincore.payments.domain.exception.PaymentDomainException
 import com.fincore.payments.domain.exception.PaymentNotFoundException
 import jakarta.servlet.http.HttpServletRequest
@@ -38,6 +40,18 @@ class GlobalExceptionHandler {
         ex: PaymentConcurrencyException,
         request: HttpServletRequest,
     ): ResponseEntity<ProblemDetail> = retryable(ProblemType.CONCURRENCY_CONFLICT, ex.message, request)
+
+    @ExceptionHandler(WebhookSignatureException::class)
+    fun handleSignature(
+        ex: WebhookSignatureException,
+        request: HttpServletRequest,
+    ): ProblemDetail = problem(ProblemType.INVALID_SIGNATURE, ex.message, request)
+
+    @ExceptionHandler(MalformedWebhookException::class)
+    fun handleMalformedWebhook(
+        ex: MalformedWebhookException,
+        request: HttpServletRequest,
+    ): ProblemDetail = problem(ProblemType.MALFORMED_REQUEST, ex.message, request)
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleValidation(
