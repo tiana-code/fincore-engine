@@ -36,6 +36,9 @@ spring-boot-starter-validation = { module = "org.springframework.boot:spring-boo
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
 spring-security-test = { module = "org.springframework.security:spring-security-test" }
 
+# Spring Kafka (version managed by the Spring Boot BOM)
+spring-kafka = { module = "org.springframework.kafka:spring-kafka" }
+
 # Hibernate
 hibernate-core = { module = "org.hibernate.orm:hibernate-core", version.ref = "hibernate" }
 

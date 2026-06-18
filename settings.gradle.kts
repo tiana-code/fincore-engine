@@ -23,6 +23,7 @@ rootProject.name = "fincore-engine"
 include(
     ":libs:fincore-core",
     ":libs:fincore-events",
+    ":libs:fincore-eventbus",
     ":libs:fincore-test-support",
     ":libs:decision-engine",
     ":services:ledger",
