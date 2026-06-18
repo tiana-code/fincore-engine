@@ -27,7 +27,7 @@ class PaymentRetryServiceTest {
     private val orchestrator = mockk<PaymentOrchestrator>(relaxed = true)
     private val paymentService = mockk<PaymentService>(relaxed = true)
     private val service =
-        PaymentRetryService(
+        PaymentRetryServiceImpl(
             paymentRepository,
             PaymentPersistenceAdapter(),
             orchestrator,
