@@ -152,7 +152,9 @@ jobs:
         run: docker compose up -d --build --wait --wait-timeout 90
 
       - name: Smoke (readiness < 30s, public surface served)
-        run: bash scripts/demo.sh
+        run: |
+          bash scripts/demo.sh http://localhost:8080
+          bash scripts/demo.sh http://localhost:8081
 
       - name: Dump container logs on failure
         if: failure()

@@ -19,12 +19,12 @@ for i in $(seq 1 "$attempts"); do
 done
 
 if [ "$ready" != true ]; then
-  echo "FAIL: ledger readiness not UP within $((attempts * interval))s at $READINESS"
+  echo "FAIL: readiness not UP within $((attempts * interval))s at $READINESS"
   exit 1
 fi
 
 if ! curl -fsS -o /dev/null "$LIVENESS"; then
-  echo "FAIL: ledger liveness not UP at $LIVENESS"
+  echo "FAIL: liveness not UP at $LIVENESS"
   exit 1
 fi
 
@@ -34,4 +34,4 @@ if [ "$code" != "200" ]; then
   exit 1
 fi
 
-echo "ledger smoke OK: readiness UP, liveness UP, api-docs 200"
+echo "smoke OK ($BASE_URL): readiness UP, liveness UP, api-docs 200"
