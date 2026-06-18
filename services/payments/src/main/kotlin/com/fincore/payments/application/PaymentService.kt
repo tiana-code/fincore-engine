@@ -10,4 +10,16 @@ interface PaymentService {
     fun initiate(command: InitiatePaymentCommand): Payment
 
     fun cancel(id: PaymentId): Payment
+
+    fun screen(id: PaymentId): Payment
+
+    fun markSubmitted(
+        id: PaymentId,
+        providerReference: String,
+    ): Payment
+
+    fun markFailed(
+        id: PaymentId,
+        reason: String,
+    ): Payment
 }
