@@ -34,6 +34,7 @@ dependencies {
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.kotest.runner.junit5)
+    testImplementation(libs.mockk)
 }
 
 tasks.test {
