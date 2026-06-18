@@ -3,6 +3,7 @@
 
 package com.fincore.ledger.application.outbox
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fincore.eventbus.EventBusAutoConfiguration
 import com.fincore.events.OutboxStatus
 import com.fincore.ledger.config.OutboxDispatcherProperties
@@ -68,7 +69,8 @@ class OutboxDispatcherIT(
             consumer.subscribe(listOf("fincore.transaction"))
             val record = poll(consumer)
             record.key() shouldBe "tx_42"
-            record.value() shouldBe payload
+            // payload is stored as JSONB and read back normalized, so compare as JSON trees, not strings.
+            ObjectMapper().readTree(record.value()) shouldBe ObjectMapper().readTree(payload)
         }
     }
 
