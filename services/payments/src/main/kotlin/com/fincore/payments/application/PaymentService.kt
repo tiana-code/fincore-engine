@@ -22,4 +22,6 @@ interface PaymentService {
         id: PaymentId,
         reason: String,
     ): Payment
+
+    fun markSettled(id: PaymentId): Payment
 }
