@@ -5,12 +5,17 @@ package com.fincore.ledger
 
 import com.fincore.ledger.config.CleanupProperties
 import com.fincore.ledger.config.IdempotencyProperties
+import com.fincore.ledger.config.OutboxDispatcherProperties
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
-@EnableConfigurationProperties(IdempotencyProperties::class, CleanupProperties::class)
+@EnableConfigurationProperties(
+    IdempotencyProperties::class,
+    CleanupProperties::class,
+    OutboxDispatcherProperties::class,
+)
 class LedgerApplication
 
 fun main(args: Array<String>) {

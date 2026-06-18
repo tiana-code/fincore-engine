@@ -42,4 +42,6 @@ class OutboxEventEntity(
     var attempts: Int,
     @Column(name = "last_error")
     var lastError: String?,
+    @Column(name = "leased_at")
+    var leasedAt: Instant? = null,
 )
