@@ -43,6 +43,10 @@ class PaymentServiceImpl(
         }
     }
 
+    @Transactional(readOnly = true)
+    override fun get(id: PaymentId): Payment =
+        adapter.toDomain(paymentRepository.findById(id.value).orElseThrow { PaymentNotFoundException(id) })
+
     @Transactional
     override fun cancel(id: PaymentId): Payment = transition(id, PaymentStatus.CANCELLED, PaymentEvents.PaymentCancelled)
 
