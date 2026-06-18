@@ -3,6 +3,8 @@
 
 package com.fincore.eventbus
 
+import com.fincore.eventbus.retry.RetryDlqConfiguration
+import com.fincore.eventbus.retry.RetryDlqProperties
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
@@ -14,6 +16,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
 import org.springframework.kafka.config.TopicBuilder
 import org.springframework.kafka.core.DefaultKafkaProducerFactory
 import org.springframework.kafka.core.KafkaAdmin
@@ -22,7 +25,8 @@ import org.springframework.kafka.core.ProducerFactory
 
 @AutoConfiguration
 @ConditionalOnProperty(prefix = "fincore.eventbus", name = ["bootstrap-servers"])
-@EnableConfigurationProperties(EventBusProperties::class)
+@EnableConfigurationProperties(EventBusProperties::class, RetryDlqProperties::class)
+@Import(RetryDlqConfiguration::class)
 class EventBusAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
