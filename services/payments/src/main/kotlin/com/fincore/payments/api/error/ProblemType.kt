@@ -14,6 +14,7 @@ enum class ProblemType(
 ) {
     PAYMENT_NOT_FOUND("payment-not-found", HttpStatus.NOT_FOUND, "PAYMENT_NOT_FOUND", "payment not found"),
     PAYMENT_CONFLICT("payment-conflict", HttpStatus.CONFLICT, "PAYMENT_CONFLICT", "illegal payment state transition"),
+    INVALID_SIGNATURE("invalid-signature", HttpStatus.UNAUTHORIZED, "INVALID_SIGNATURE", "invalid webhook signature"),
     CONCURRENCY_CONFLICT("concurrency-conflict", HttpStatus.SERVICE_UNAVAILABLE, "CONCURRENCY_CONFLICT", "concurrency conflict, retry"),
     VALIDATION_FAILED("validation-failed", HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "invalid request"),
     MALFORMED_REQUEST("malformed-request", HttpStatus.BAD_REQUEST, "MALFORMED_REQUEST", "invalid request"),
