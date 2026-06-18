@@ -28,4 +28,5 @@ include(
     ":libs:decision-engine",
     ":services:ledger",
     ":services:decision",
+    ":services:payments",
 )
