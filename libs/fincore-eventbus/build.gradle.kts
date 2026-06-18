@@ -27,6 +27,8 @@ dependencies {
     // spring-kafka is exposed: the auto-configuration's @Bean methods return KafkaTemplate/KafkaAdmin,
     // so a consuming service (the ledger dispatcher) compiles against these types.
     api(libs.spring.kafka)
+    // spring-jdbc backs JdbcProcessedEventStore (consumer dedup over a processed_events table).
+    implementation(libs.spring.jdbc)
 
     testImplementation(platform(springBootBom))
     testImplementation(libs.spring.boot.starter.test)
@@ -52,7 +54,9 @@ dependencies {
     "integrationTestImplementation"(platform(springBootBom))
     "integrationTestImplementation"(libs.testcontainers.core)
     "integrationTestImplementation"(libs.testcontainers.redpanda)
+    "integrationTestImplementation"(libs.testcontainers.postgres)
     "integrationTestImplementation"(libs.testcontainers.junit5)
+    "integrationTestImplementation"(libs.postgres.jdbc)
 }
 
 val integrationTest =

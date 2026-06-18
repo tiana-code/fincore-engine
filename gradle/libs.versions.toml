@@ -38,6 +38,7 @@ spring-security-test = { module = "org.springframework.security:spring-security-
 
 # Spring Kafka (version managed by the Spring Boot BOM)
 spring-kafka = { module = "org.springframework.kafka:spring-kafka" }
+spring-jdbc = { module = "org.springframework:spring-jdbc" }
 
 # Hibernate
 hibernate-core = { module = "org.hibernate.orm:hibernate-core", version.ref = "hibernate" }
