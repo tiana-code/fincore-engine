@@ -46,6 +46,7 @@ postgres-jdbc = { module = "org.postgresql:postgresql", version.ref = "postgres-
 # Jackson
 jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
 
 # Identifiers
 ulid-creator = { module = "com.github.f4b6a3:ulid-creator", version.ref = "ulid" }
