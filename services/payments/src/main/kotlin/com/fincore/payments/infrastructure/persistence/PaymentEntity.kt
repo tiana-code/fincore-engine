@@ -36,4 +36,6 @@ class PaymentEntity(
     @Version
     @Column(name = "version", nullable = false)
     var version: Long,
+    @Column(name = "provider_reference")
+    var providerReference: String? = null,
 )

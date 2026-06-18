@@ -11,15 +11,20 @@ data class PaymentEventData(
     val amount: String,
     val currency: String,
     val status: String,
+    val detail: String? = null,
 ) {
     companion object {
-        fun from(payment: Payment): PaymentEventData =
+        fun from(
+            payment: Payment,
+            detail: String? = null,
+        ): PaymentEventData =
             PaymentEventData(
                 paymentId = payment.id.toString(),
                 reference = payment.reference,
                 amount = payment.amount.amount.toPlainString(),
                 currency = payment.amount.currency.code,
                 status = payment.status.name,
+                detail = detail,
             )
     }
 }

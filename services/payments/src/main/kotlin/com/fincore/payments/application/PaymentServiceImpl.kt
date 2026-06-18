@@ -44,13 +44,51 @@ class PaymentServiceImpl(
     }
 
     @Transactional
-    override fun cancel(id: PaymentId): Payment {
+    override fun cancel(id: PaymentId): Payment = transition(id, PaymentStatus.CANCELLED, PaymentEvents.PaymentCancelled)
+
+    @Transactional
+    override fun screen(id: PaymentId): Payment {
         val entity = paymentRepository.findById(id.value).orElseThrow { PaymentNotFoundException(id) }
         val payment = adapter.toDomain(entity)
-        payment.transitionTo(PaymentStatus.CANCELLED)
+        payment.transitionTo(PaymentStatus.SCREENING)
         entity.status = payment.status
         paymentRepository.saveAndFlush(entity)
-        recordEvent(payment, PaymentEvents.PaymentCancelled)
+        return payment
+    }
+
+    @Transactional
+    override fun markSubmitted(
+        id: PaymentId,
+        providerReference: String,
+    ): Payment {
+        val entity = paymentRepository.findById(id.value).orElseThrow { PaymentNotFoundException(id) }
+        val payment = adapter.toDomain(entity)
+        payment.transitionTo(PaymentStatus.SUBMITTED)
+        entity.status = payment.status
+        entity.providerReference = providerReference
+        paymentRepository.saveAndFlush(entity)
+        recordEvent(payment, PaymentEvents.PaymentScreened)
+        return payment
+    }
+
+    @Transactional
+    override fun markFailed(
+        id: PaymentId,
+        reason: String,
+    ): Payment = transition(id, PaymentStatus.FAILED, PaymentEvents.PaymentFailed, reason)
+
+    private fun transition(
+        id: PaymentId,
+        target: PaymentStatus,
+        type: EventType,
+        detail: String? = null,
+    ): Payment {
+        val entity = paymentRepository.findById(id.value).orElseThrow { PaymentNotFoundException(id) }
+        val payment = adapter.toDomain(entity)
+        payment.transitionTo(target)
+        entity.status = payment.status
+        paymentRepository.saveAndFlush(entity)
+        recordEvent(payment, type, detail)
         return payment
     }
 
@@ -64,13 +102,14 @@ class PaymentServiceImpl(
     private fun recordEvent(
         payment: Payment,
         type: EventType,
+        detail: String? = null,
     ) {
         val now = Instant.now()
         val envelope =
             EventEnvelope.of(
                 source = SOURCE,
                 type = type,
-                data = PaymentEventData.from(payment),
+                data = PaymentEventData.from(payment, detail),
                 subject = payment.id.toString(),
             )
         paymentEventRepository.saveAndFlush(
