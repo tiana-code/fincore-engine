@@ -1,0 +1,11 @@
+apiVersion: v2
+name: payments
+description: FinCore payments service, payment orchestration with idempotency and an outbox
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/tiana-code/fincore-engine
+sources:
+  - https://github.com/tiana-code/fincore-engine
+maintainers:
+  - name: FinCore Engine Authors

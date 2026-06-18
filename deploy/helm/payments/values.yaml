@@ -1,0 +1,90 @@
+replicaCount: 1
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: ghcr.io/tiana-code/fincore-payments
+  # Defaults to the chart appVersion when empty.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 8080
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+# Non-secret environment surfaced through the ConfigMap. Probes assume the
+# actuator stays on the main 8080 port, so leave springProfilesActive empty
+# (a prod profile that moves actuator to 9090 would break the 8080 probes).
+#
+# sandboxBankEnabled defaults true: the sandbox is the only bank provider
+# shipped in the open-source service, and PaymentOrchestrator requires a
+# provider to start. Supply a real provider and flip this off in private
+# deployments. The dispatcher and retry schedulers default off; enable the
+# dispatcher only alongside eventbusBootstrapServers.
+config:
+  springProfilesActive: ""
+  keycloakIssuerUri: ""
+  otlpTracingEndpoint: ""
+  datasourceUrl: ""
+  datasourceUsername: payments
+  sandboxBankEnabled: "true"
+  dispatcherEnabled: "false"
+  retryEnabled: "false"
+  eventbusBootstrapServers: ""
+
+# Name of a pre-existing Kubernetes Secret holding the credentials. The chart
+# never contains secret values; it only references them. Leave empty to render
+# without secret-backed env (for example during template validation).
+existingSecret: ""
+secretKeys:
+  datasourcePassword: datasource-password
+  keycloakClientSecret: keycloak-client-secret
+  webhookHmacSecret: webhook-hmac-secret
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+probes:
+  liveness:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 6

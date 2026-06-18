@@ -25,6 +25,10 @@ jobs:
     permissions:
       contents: read
 
+    strategy:
+      matrix:
+        chart: [ledger, payments]
+
     env:
       KUBECONFORM_VERSION: v0.6.7
       KUBERNETES_VERSION: "1.31.0"
@@ -39,7 +43,7 @@ jobs:
           version: "v3.16.4"
 
       - name: Helm lint
-        run: helm lint deploy/helm/ledger
+        run: helm lint deploy/helm/${{ matrix.chart }}
 
       - name: Install kubeconform
         run: |
@@ -49,5 +53,5 @@ jobs:
 
       - name: Helm template and validate manifests
         run: |
-          helm template ledger deploy/helm/ledger --set image.tag=test \
+          helm template ${{ matrix.chart }} deploy/helm/${{ matrix.chart }} --set image.tag=test \
             | kubeconform -strict -summary -kubernetes-version "$KUBERNETES_VERSION"
