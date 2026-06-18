@@ -6,4 +6,6 @@ package com.fincore.payments.infrastructure.persistence
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
-interface PaymentRepository : JpaRepository<PaymentEntity, UUID>
+interface PaymentRepository : JpaRepository<PaymentEntity, UUID> {
+    fun findByProviderReference(providerReference: String): PaymentEntity?
+}

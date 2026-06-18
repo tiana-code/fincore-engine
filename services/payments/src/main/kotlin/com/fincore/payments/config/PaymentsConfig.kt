@@ -4,9 +4,10 @@
 package com.fincore.payments.config
 
 import com.fincore.payments.application.screening.PaymentScreeningProperties
+import com.fincore.payments.application.webhook.PaymentWebhookProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-@EnableConfigurationProperties(PaymentScreeningProperties::class)
+@EnableConfigurationProperties(PaymentScreeningProperties::class, PaymentWebhookProperties::class)
 class PaymentsConfig

@@ -77,6 +77,9 @@ class PaymentServiceImpl(
         reason: String,
     ): Payment = transition(id, PaymentStatus.FAILED, PaymentEvents.PaymentFailed, reason)
 
+    @Transactional
+    override fun markSettled(id: PaymentId): Payment = transition(id, PaymentStatus.SETTLED, PaymentEvents.PaymentSettled)
+
     private fun transition(
         id: PaymentId,
         target: PaymentStatus,
