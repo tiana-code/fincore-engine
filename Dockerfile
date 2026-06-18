@@ -1,9 +1,10 @@
 FROM eclipse-temurin:21-jdk AS builder
+ARG SERVICE=ledger
 WORKDIR /workspace
 COPY . .
 RUN chmod +x gradlew \
- && ./gradlew :services:ledger:bootJar --no-daemon -x test \
- && find services/ledger/build/libs -name '*.jar' ! -name '*-plain.jar' -exec cp {} /workspace/app.jar \;
+ && ./gradlew :services:${SERVICE}:bootJar --no-daemon -x test \
+ && find services/${SERVICE}/build/libs -name '*.jar' ! -name '*-plain.jar' -exec cp {} /workspace/app.jar \;
 
 FROM gcr.io/distroless/java21-debian12:nonroot AS runtime
 WORKDIR /app

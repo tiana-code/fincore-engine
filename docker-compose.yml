@@ -5,6 +5,8 @@ services:
       POSTGRES_DB: ledger
       POSTGRES_USER: ledger
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ledger}
+    volumes:
+      - ./scripts/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ledger -d ledger"]
       interval: 2s
@@ -24,3 +26,20 @@ services:
       SPRING_DATASOURCE_USERNAME: ledger
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-ledger}
       KEYCLOAK_ISSUER_URI: http://localhost/realms/fincore
+
+  payments:
+    build:
+      context: .
+      args:
+        SERVICE: payments
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payments
+      SPRING_DATASOURCE_USERNAME: ledger
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-ledger}
+      KEYCLOAK_ISSUER_URI: http://localhost/realms/fincore
+      FINCORE_PAYMENTS_BANK_SANDBOX_ENABLED: "true"
