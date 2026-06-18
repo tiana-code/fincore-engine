@@ -6,11 +6,7 @@ package com.fincore.eventbus.consumer
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * Non-persistent dedup store for tests and local development. State is lost on restart, so it gives
- * no exactly-once effect across restarts - a persistent store (see [JdbcProcessedEventStore]) is
- * required in production.
- */
+// Non-persistent (state lost on restart): tests/dev only, use JdbcProcessedEventStore in production.
 class InMemoryProcessedEventStore : ProcessedEventStore {
     private val seen: MutableSet<Pair<UUID, String>> = ConcurrentHashMap.newKeySet()
 

@@ -46,9 +46,7 @@ class EventBusAutoConfiguration {
     fun eventBusTopics(properties: EventBusProperties): KafkaAdmin.NewTopics = KafkaAdmin.NewTopics(*newTopics(properties).toTypedArray())
 
     companion object {
-        // Durability is a correctness invariant for ledger events, not a deployment knob:
-        // acks=all + enable.idempotence=true are fixed so the producer can never be silently
-        // weakened into dropping or duplicating events. Connection/security stay configurable.
+        // fixed durability invariant: acks=all is not a deployment knob, never weaken to allow drops/dupes
         private const val DURABLE_ACKS = "all"
 
         fun newTopics(properties: EventBusProperties): List<NewTopic> =

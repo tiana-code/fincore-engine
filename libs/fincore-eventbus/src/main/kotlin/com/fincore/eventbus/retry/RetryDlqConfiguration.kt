@@ -12,11 +12,6 @@ import org.springframework.kafka.listener.DeadLetterPublishingRecoverer
 import org.springframework.kafka.listener.DefaultErrorHandler
 import org.springframework.util.backoff.ExponentialBackOff
 
-/**
- * Consumer error topology: bounded exponential-backoff retry, then terminal routing of an exhausted
- * record to its dead-letter topic. A consumer attaches [kafkaErrorHandler] to its listener container
- * factory. Loaded only when the event bus is configured (imported by EventBusAutoConfiguration).
- */
 @Configuration
 class RetryDlqConfiguration {
     @Bean
@@ -31,8 +26,7 @@ class RetryDlqConfiguration {
         naming: RetryTopicNaming,
     ): DeadLetterPublishingRecoverer =
         DeadLetterPublishingRecoverer(kafkaTemplate) { record, _ ->
-            // partition -1 lets the producer place the record by key, preserving per-key affinity
-            // without assuming the dead-letter topic has the same partition count as the source.
+            // -1: producer places by key, preserving affinity without matching source partition count
             TopicPartition(naming.deadLetterTopic(record.topic()), PARTITION_BY_KEY)
         }
 

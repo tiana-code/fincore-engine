@@ -3,10 +3,6 @@
 
 package com.fincore.eventbus.retry
 
-/**
- * Suffix-based naming for the retry and dead-letter topics of a base topic. Generic - the caller
- * supplies the base topic; no business names are encoded here.
- */
 class RetryTopicNaming(
     private val retrySuffix: String,
     private val deadLetterSuffix: String,

@@ -5,15 +5,8 @@ package com.fincore.eventbus.consumer
 
 import java.util.UUID
 
-/**
- * Dedup store for at-least-once consumers. Keyed by (envelope id, consumer group) so independent
- * consumers each process an event exactly once.
- */
 interface ProcessedEventStore {
-    /**
-     * Atomically claims an envelope for a consumer group. Returns true the first time the pair is
-     * seen (the caller should process it) and false on every subsequent call (a duplicate to skip).
-     */
+    /** Returns true the first time (envelopeId, consumerGroup) is claimed, false for a duplicate. */
     fun markIfFirstSeen(
         envelopeId: UUID,
         consumerGroup: String,
