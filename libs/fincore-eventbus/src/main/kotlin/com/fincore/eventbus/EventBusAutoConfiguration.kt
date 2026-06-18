@@ -5,6 +5,7 @@ package com.fincore.eventbus
 
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.AdminClientConfig
+import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.serialization.StringSerializer
@@ -13,6 +14,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
+import org.springframework.kafka.config.TopicBuilder
 import org.springframework.kafka.core.DefaultKafkaProducerFactory
 import org.springframework.kafka.core.KafkaAdmin
 import org.springframework.kafka.core.KafkaTemplate
@@ -35,11 +37,25 @@ class EventBusAutoConfiguration {
     @ConditionalOnMissingBean
     fun kafkaAdmin(properties: EventBusProperties): KafkaAdmin = KafkaAdmin(adminConfig(properties))
 
+    @Bean
+    @ConditionalOnMissingBean
+    fun eventBusTopics(properties: EventBusProperties): KafkaAdmin.NewTopics = KafkaAdmin.NewTopics(*newTopics(properties).toTypedArray())
+
     companion object {
         // Durability is a correctness invariant for ledger events, not a deployment knob:
         // acks=all + enable.idempotence=true are fixed so the producer can never be silently
         // weakened into dropping or duplicating events. Connection/security stay configurable.
         private const val DURABLE_ACKS = "all"
+
+        fun newTopics(properties: EventBusProperties): List<NewTopic> =
+            properties.topics.map { spec ->
+                TopicBuilder
+                    .name(spec.name)
+                    .partitions(spec.partitions)
+                    .replicas(spec.replicas)
+                    .configs(spec.configs)
+                    .build()
+            }
 
         fun producerConfig(properties: EventBusProperties): Map<String, Any> =
             buildMap {
