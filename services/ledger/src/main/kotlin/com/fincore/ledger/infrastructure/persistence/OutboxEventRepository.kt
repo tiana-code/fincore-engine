@@ -61,4 +61,11 @@ interface OutboxEventRepository : JpaRepository<OutboxEventEntity, UUID> {
         @Param("attempts") attempts: Int,
         @Param("lastError") lastError: String?,
     ): Int
+
+    fun countByStatus(status: OutboxStatus): Long
+
+    @Query("select min(e.createdAt) from OutboxEventEntity e where e.status = :status")
+    fun oldestCreatedAt(
+        @Param("status") status: OutboxStatus,
+    ): Instant?
 }
