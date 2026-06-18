@@ -24,7 +24,9 @@ dependencies {
     implementation(libs.kotlin.reflect)
 
     implementation(libs.spring.boot.starter)
-    implementation(libs.spring.kafka)
+    // spring-kafka is exposed: the auto-configuration's @Bean methods return KafkaTemplate/KafkaAdmin,
+    // so a consuming service (the ledger dispatcher) compiles against these types.
+    api(libs.spring.kafka)
 
     testImplementation(platform(springBootBom))
     testImplementation(libs.spring.boot.starter.test)
