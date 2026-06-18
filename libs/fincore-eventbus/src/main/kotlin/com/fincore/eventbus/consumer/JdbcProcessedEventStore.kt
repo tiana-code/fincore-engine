@@ -8,11 +8,7 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
-/**
- * Persistent dedup store over a `processed_events` table (see db/processed-events.sql). The claim is
- * an INSERT ... ON CONFLICT DO NOTHING that participates in the ambient transaction, so a failing
- * handler rolls it back and the event is retried.
- */
+// Claim = INSERT ... ON CONFLICT DO NOTHING in the ambient transaction, so it rolls back with a failing handler.
 class JdbcProcessedEventStore(
     private val jdbcTemplate: JdbcTemplate,
     private val tableName: String = "processed_events",

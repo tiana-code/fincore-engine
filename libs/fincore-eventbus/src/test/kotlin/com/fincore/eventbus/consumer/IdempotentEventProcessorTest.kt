@@ -53,9 +53,7 @@ class IdempotentEventProcessorTest {
             processor.process(id, "group", { error("handler failed") })
         }
 
-        // The in-memory store has no transaction, so the claim survives a thrown handler: the
-        // re-process is skipped. Rollback of the claim on handler failure is a property of a
-        // transactional store (JdbcProcessedEventStore), proven by JdbcProcessedEventStoreIT.
+        // in-memory has no tx so the claim survives a thrown handler; rollback is a JDBC property (see the IT)
         processor.process(id, "group", { }) shouldBe EventProcessingOutcome.DUPLICATE_SKIPPED
     }
 }

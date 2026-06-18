@@ -37,8 +37,7 @@ class EventBusTopicProvisioningIT {
         runner.run { context ->
             partitionCount(context.getBean(KafkaAdmin::class.java)) shouldBe PARTITIONS
         }
-        // Second context start re-runs provisioning against the same broker and topic: KafkaAdmin
-        // treats the existing same-partition topic as a no-op (create-only, idempotent, INV-1).
+        // re-provisioning an existing same-partition topic is a no-op (create-only, idempotent)
         runner.run { context ->
             partitionCount(context.getBean(KafkaAdmin::class.java)) shouldBe PARTITIONS
         }
