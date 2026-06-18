@@ -51,6 +51,7 @@ class PaymentsApiContextIT(
             registry.add("spring.datasource.password") { PostgresContainerExtension.password }
             registry.add("spring.jpa.hibernate.ddl-auto") { "none" }
             registry.add("spring.security.oauth2.resourceserver.jwt.issuer-uri") { "https://issuer.test" }
+            registry.add("fincore.payments.bank.sandbox.enabled") { "true" }
         }
     }
 }
