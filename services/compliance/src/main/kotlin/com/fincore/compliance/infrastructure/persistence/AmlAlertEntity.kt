@@ -22,6 +22,8 @@ class AmlAlertEntity(
     var id: UUID,
     @Column(name = "rule_key", nullable = false, updatable = false)
     var ruleKey: String,
+    @Column(name = "subject_reference", nullable = false, updatable = false)
+    var subjectReference: String,
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     var status: AmlAlertStatus,

@@ -88,6 +88,8 @@ class KycApiContextIT(
             registry.add("spring.datasource.password") { PostgresContainerExtension.password }
             registry.add("spring.jpa.hibernate.ddl-auto") { "none" }
             registry.add("spring.security.oauth2.resourceserver.jwt.issuer-uri") { "https://issuer.test" }
+            // This context does not exercise the AML consumer; keep the Kafka listener from polling an absent broker.
+            registry.add("spring.kafka.listener.auto-startup") { "false" }
         }
     }
 }
