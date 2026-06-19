@@ -17,6 +17,7 @@ kotlin {
 
 dependencies {
     implementation(project(":libs:decision-engine"))
+    implementation(project(":libs:fincore-observability"))
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlin.reflect)
     implementation(libs.jackson.module.kotlin)
