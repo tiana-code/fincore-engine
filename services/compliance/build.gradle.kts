@@ -9,7 +9,7 @@ plugins {
     alias(libs.plugins.spring.dependency.management)
 }
 
-description = "FinCore Compliance service: KYC, AML and case-management domain and persistence"
+description = "FinCore Compliance service: KYC, AML and case management"
 
 kotlin {
     jvmToolchain(21)
@@ -17,16 +17,31 @@ kotlin {
 
 dependencies {
     implementation(project(":libs:fincore-core"))
+    implementation(project(":libs:fincore-observability"))
 
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlin.reflect)
+    implementation(libs.jackson.module.kotlin)
 
+    implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.data.jpa)
+    implementation(libs.spring.boot.starter.security)
+    implementation(libs.spring.boot.starter.oauth2.resource.server)
+    implementation(libs.spring.boot.starter.actuator)
+    implementation(libs.spring.boot.starter.validation)
+    implementation(libs.springdoc.openapi.starter)
+
     implementation(libs.liquibase.core)
     runtimeOnly(libs.postgres.jdbc)
 
+    implementation(libs.micrometer.registry.prometheus)
+    implementation(libs.micrometer.tracing.bridge.otel)
+    implementation(libs.opentelemetry.api)
+    implementation(libs.opentelemetry.exporter.otlp)
+
     testImplementation(project(":libs:fincore-test-support"))
     testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.spring.security.test)
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.mockk)
