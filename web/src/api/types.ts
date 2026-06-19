@@ -95,3 +95,19 @@ export interface DecisionLogResponse {
     matched: boolean
     outcomeLabel: string | null
 }
+
+export type PaymentStatus =
+    | 'INITIATED'
+    | 'SCREENING'
+    | 'SUBMITTED'
+    | 'SETTLED'
+    | 'FAILED'
+    | 'CANCELLED'
+
+export interface PaymentResponse {
+    id: string
+    reference: string
+    amount: number
+    currency: string
+    status: PaymentStatus
+}

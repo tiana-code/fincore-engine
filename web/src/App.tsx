@@ -9,6 +9,7 @@ import { Accounts } from '@/routes/Accounts'
 import { Cases } from '@/routes/Cases'
 import { Decisions } from '@/routes/Decisions'
 import { Overview } from '@/routes/Overview'
+import { Payments } from '@/routes/Payments'
 import { TransactionDetail } from '@/routes/TransactionDetail'
 import { Transactions } from '@/routes/Transactions'
 
@@ -27,6 +28,7 @@ export function App() {
                         <Route path="/transactions/:id" element={<TransactionDetail />} />
                         <Route path="/compliance/cases" element={<Cases />} />
                         <Route path="/decisions" element={<Decisions />} />
+                        <Route path="/payments" element={<Payments />} />
                     </Routes>
                 </BrowserRouter>
             </ThemeProvider>
