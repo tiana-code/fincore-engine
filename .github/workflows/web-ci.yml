@@ -34,3 +34,35 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: npm run build
+
+  docker:
+    name: Web image build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t fincore-web:ci web
+      - name: Assert nonroot runtime user
+        run: |
+          user=$(docker inspect -f '{{.Config.User}}' fincore-web:ci)
+          echo "runtime user: $user"
+          [ -n "$user" ] && [ "$user" != "root" ] && [ "$user" != "0" ] || { echo "FAIL: runtime user is root/empty ($user)"; exit 1; }
+      - name: Smoke run (serves index and falls back to it for client routes)
+        run: |
+          docker run -d --name web -p 8080:8080 fincore-web:ci
+          for _ in $(seq 1 15); do curl -fsS http://localhost:8080/ >/dev/null 2>&1 && break || sleep 2; done
+          curl -fsS http://localhost:8080/ >/dev/null 2>&1 || { echo "FAIL: container never became ready"; docker logs web; docker rm -f web; exit 1; }
+          curl -fsS http://localhost:8080/ | grep -qi '<!doctype html'
+          curl -fsS http://localhost:8080/payments | grep -qi '<!doctype html'
+          docker rm -f web
+      - name: Trivy image scan (no CRITICAL)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: image
+          image-ref: fincore-web:ci
+          severity: CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+        env:
+          TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db
+          TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
