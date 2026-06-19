@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 // SPDX-FileCopyrightText: 2026 FinCore Engine Authors
 
-import type { Account, Page } from './types.js'
+import type { Account, Balance, Page, Transaction, TransactionDetail } from './types.js'
 
 const DEFAULT_PAGE_SIZE = 20
 
@@ -37,6 +37,18 @@ export class FincoreClient {
 
     getAccount(id: string): Promise<Account> {
         return this.get<Account>(`/v1/accounts/${encodeURIComponent(id)}`)
+    }
+
+    getBalance(accountId: string): Promise<Balance> {
+        return this.get<Balance>(`/v1/accounts/${encodeURIComponent(accountId)}/balance`)
+    }
+
+    listTransactions(page = 0, size: number = DEFAULT_PAGE_SIZE): Promise<Page<Transaction>> {
+        return this.get<Page<Transaction>>(`/v1/transactions?page=${page}&size=${size}`)
+    }
+
+    getTransaction(id: string): Promise<TransactionDetail> {
+        return this.get<TransactionDetail>(`/v1/transactions/${encodeURIComponent(id)}`)
     }
 
     private async get<T>(path: string): Promise<T> {

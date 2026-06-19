@@ -29,3 +29,38 @@ export interface Page<T> {
     totalElements: number
     totalPages: number
 }
+
+export interface Balance {
+    accountId: string
+    currency: string
+    amount: string
+    lastPostedAt: string | null
+}
+
+export type TransactionStatus = 'POSTED' | 'REVERSED'
+
+export interface Transaction {
+    id: string
+    reference: string
+    status: TransactionStatus
+    postedAt: string
+}
+
+export type EntryDirection = 'DEBIT' | 'CREDIT'
+
+export interface Entry {
+    accountId: string
+    direction: EntryDirection
+    amount: string
+    currency: string
+}
+
+export interface TransactionDetail {
+    id: string
+    reference: string
+    description: string | null
+    status: TransactionStatus
+    reversesId: string | null
+    postedAt: string
+    entries: Entry[]
+}
