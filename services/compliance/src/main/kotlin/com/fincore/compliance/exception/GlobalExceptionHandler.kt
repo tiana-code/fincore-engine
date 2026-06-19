@@ -4,6 +4,7 @@
 package com.fincore.compliance.exception
 
 import com.fincore.compliance.api.error.ProblemType
+import com.fincore.compliance.application.case.CaseNotFoundException
 import com.fincore.compliance.application.kyc.KycSessionNotFoundException
 import com.fincore.compliance.domain.ComplianceDomainException
 import jakarta.servlet.http.HttpServletRequest
@@ -14,6 +15,7 @@ import org.springframework.validation.FieldError
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import java.net.URI
 
 @RestControllerAdvice
@@ -24,15 +26,21 @@ class GlobalExceptionHandler {
         request: HttpServletRequest,
     ): ProblemDetail = problem(ProblemType.KYC_NOT_FOUND, ex.message, request)
 
+    @ExceptionHandler(CaseNotFoundException::class)
+    fun handleCaseNotFound(
+        ex: CaseNotFoundException,
+        request: HttpServletRequest,
+    ): ProblemDetail = problem(ProblemType.CASE_NOT_FOUND, ex.message, request)
+
     @ExceptionHandler(ComplianceDomainException::class)
     fun handleDomain(
         ex: ComplianceDomainException,
         request: HttpServletRequest,
-    ): ProblemDetail = problem(ProblemType.KYC_CONFLICT, ex.message, request)
+    ): ProblemDetail = problem(ProblemType.COMPLIANCE_CONFLICT, ex.message, request)
 
     @ExceptionHandler(OptimisticLockingFailureException::class)
     fun handleOptimisticLock(request: HttpServletRequest): ProblemDetail =
-        problem(ProblemType.KYC_CONFLICT, "Concurrent update conflict", request)
+        problem(ProblemType.COMPLIANCE_CONFLICT, "Concurrent update conflict", request)
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleValidation(
@@ -46,6 +54,12 @@ class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException::class)
     fun handleUnreadable(request: HttpServletRequest): ProblemDetail =
         problem(ProblemType.MALFORMED_REQUEST, "Request body is missing or malformed", request)
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException::class)
+    fun handleTypeMismatch(
+        ex: MethodArgumentTypeMismatchException,
+        request: HttpServletRequest,
+    ): ProblemDetail = problem(ProblemType.INVALID_REQUEST, "Invalid value for parameter '${ex.name}'", request)
 
     @ExceptionHandler(IllegalArgumentException::class)
     fun handleIllegalArgument(

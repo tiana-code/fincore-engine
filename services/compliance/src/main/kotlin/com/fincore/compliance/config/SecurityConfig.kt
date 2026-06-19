@@ -30,6 +30,10 @@ class SecurityConfig {
                     .hasAuthority(SCOPE_READ)
                     .requestMatchers(KYC_PATHS)
                     .hasAuthority(SCOPE_WRITE)
+                    .requestMatchers(HttpMethod.GET, COMPLIANCE_PATHS)
+                    .hasAuthority(SCOPE_READ)
+                    .requestMatchers(COMPLIANCE_PATHS)
+                    .hasAuthority(SCOPE_WRITE)
                     .anyRequest()
                     .authenticated()
             }.oauth2ResourceServer { resource ->
@@ -43,6 +47,7 @@ class SecurityConfig {
 
     private companion object {
         const val KYC_PATHS = "/v1/kyc/**"
+        const val COMPLIANCE_PATHS = "/v1/compliance/**"
         const val SCOPE_READ = "SCOPE_compliance:read"
         const val SCOPE_WRITE = "SCOPE_compliance:write"
         val PUBLIC_PATHS =
