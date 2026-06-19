@@ -7,6 +7,7 @@ import com.fincore.core.PaymentId
 import com.fincore.payments.application.PaymentOrchestrator
 import com.fincore.payments.application.PaymentService
 import com.fincore.payments.domain.enum.PaymentStatus
+import com.fincore.payments.infrastructure.persistence.PaymentEntity
 import com.fincore.payments.infrastructure.persistence.PaymentPersistenceAdapter
 import com.fincore.payments.infrastructure.persistence.PaymentRepository
 import org.slf4j.LoggerFactory
@@ -15,10 +16,11 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Re-routes payments stuck in SCREENING (a transient bank failure left them there) within a bounded age window,
- * failing them once past the deadline. NOT transactional: the bank re-submit happens inside [PaymentOrchestrator]
- * outside any transaction, and each transition is its own short transaction. Assumes a single scheduler instance;
- * overlapping ticks rely on an idempotent bank submit (the sandbox is deterministic by payment id).
+ * Advances payments that stalled in INITIATED or SCREENING (a crash dropped the after-commit orchestration, or a
+ * transient bank failure left them screening) within a bounded age window, failing them once past the deadline. NOT
+ * transactional: the bank call happens inside [PaymentOrchestrator] outside any transaction, and each transition is its
+ * own short transaction. Assumes a single scheduler instance; overlapping ticks rely on an idempotent bank submit (the
+ * sandbox is deterministic by payment id).
  */
 @Service
 class PaymentRetryServiceImpl(
@@ -32,15 +34,25 @@ class PaymentRetryServiceImpl(
 
     override fun retryStuck() {
         val now = Instant.now()
-        val stuck = paymentRepository.findByStatusAndCreatedAtBefore(PaymentStatus.SCREENING, now.minus(properties.stuckAfter))
+        val cutoff = now.minus(properties.stuckAfter)
         val deadline = now.minus(properties.maxAge)
-        for (entity in stuck) {
+        sweep(PaymentStatus.INITIATED, cutoff, deadline) { entity -> orchestrator.process(PaymentId(entity.id)) }
+        sweep(PaymentStatus.SCREENING, cutoff, deadline) { entity -> orchestrator.resume(adapter.toDomain(entity)) }
+    }
+
+    private fun sweep(
+        status: PaymentStatus,
+        cutoff: Instant,
+        deadline: Instant,
+        recover: (PaymentEntity) -> Unit,
+    ) {
+        for (entity in paymentRepository.findByStatusAndCreatedAtBefore(status, cutoff)) {
             val expired = entity.createdAt.isBefore(deadline)
             attempt(entity.id, expired) {
                 if (expired) {
                     paymentService.markFailed(PaymentId(entity.id), DEADLINE_REASON)
                 } else {
-                    orchestrator.resume(adapter.toDomain(entity))
+                    recover(entity)
                 }
             }
         }

@@ -35,9 +35,13 @@ class PaymentRetryServiceTest {
             PaymentRetryProperties(enabled = true, stuckAfter = Duration.ofMinutes(5), maxAge = Duration.ofHours(1)),
         )
 
+    init {
+        every { paymentRepository.findByStatusAndCreatedAtBefore(any(), any()) } returns emptyList()
+    }
+
     @Test
-    fun `should resume a payment stuck within the retry window`() {
-        every { paymentRepository.findByStatusAndCreatedAtBefore(any(), any()) } returns listOf(stuck(Duration.ofMinutes(10)))
+    fun `should resume a payment stuck in screening within the retry window`() {
+        screening(listOf(stuck(PaymentStatus.SCREENING, Duration.ofMinutes(10))))
 
         service.retryStuck()
 
@@ -46,8 +50,8 @@ class PaymentRetryServiceTest {
     }
 
     @Test
-    fun `should fail a payment past the retry deadline without resuming`() {
-        every { paymentRepository.findByStatusAndCreatedAtBefore(any(), any()) } returns listOf(stuck(Duration.ofHours(2)))
+    fun `should fail a screening payment past the retry deadline without resuming`() {
+        screening(listOf(stuck(PaymentStatus.SCREENING, Duration.ofHours(2))))
 
         service.retryStuck()
 
@@ -56,9 +60,35 @@ class PaymentRetryServiceTest {
     }
 
     @Test
+    fun `should process a payment stuck in initiated within the retry window`() {
+        initiated(listOf(stuck(PaymentStatus.INITIATED, Duration.ofMinutes(10))))
+
+        service.retryStuck()
+
+        verify { orchestrator.process(any()) }
+        verify(exactly = 0) { paymentService.markFailed(any(), any()) }
+        verify(exactly = 0) { orchestrator.resume(any()) }
+    }
+
+    @Test
+    fun `should fail an initiated payment past the retry deadline without processing`() {
+        initiated(listOf(stuck(PaymentStatus.INITIATED, Duration.ofHours(2))))
+
+        service.retryStuck()
+
+        verify { paymentService.markFailed(any(), "retry deadline exceeded") }
+        verify(exactly = 0) { orchestrator.process(any()) }
+        verify(exactly = 0) { orchestrator.resume(any()) }
+    }
+
+    @Test
     fun `should continue the batch when resuming one payment throws`() {
-        every { paymentRepository.findByStatusAndCreatedAtBefore(any(), any()) } returns
-            listOf(stuck(Duration.ofMinutes(10)), stuck(Duration.ofMinutes(20)))
+        screening(
+            listOf(
+                stuck(PaymentStatus.SCREENING, Duration.ofMinutes(10)),
+                stuck(PaymentStatus.SCREENING, Duration.ofMinutes(20)),
+            ),
+        )
         every { orchestrator.resume(any()) } throws RuntimeException("bank down") andThen
             Payment(PaymentId.generate(), Money(BigDecimal("100.00"), Currency.USD), "order-1", PaymentStatus.SUBMITTED)
 
@@ -67,13 +97,24 @@ class PaymentRetryServiceTest {
         verify(exactly = 2) { orchestrator.resume(any()) }
     }
 
-    private fun stuck(age: Duration): PaymentEntity =
+    private fun screening(entities: List<PaymentEntity>) {
+        every { paymentRepository.findByStatusAndCreatedAtBefore(PaymentStatus.SCREENING, any()) } returns entities
+    }
+
+    private fun initiated(entities: List<PaymentEntity>) {
+        every { paymentRepository.findByStatusAndCreatedAtBefore(PaymentStatus.INITIATED, any()) } returns entities
+    }
+
+    private fun stuck(
+        status: PaymentStatus,
+        age: Duration,
+    ): PaymentEntity =
         PaymentEntity(
             UUID.randomUUID(),
             "order-1",
             BigDecimal("100.00"),
             "USD",
-            PaymentStatus.SCREENING,
+            status,
             Instant.now().minus(age),
             0L,
         )
