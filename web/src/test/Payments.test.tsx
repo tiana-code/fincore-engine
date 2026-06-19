@@ -101,4 +101,61 @@ describe('Payments', () => {
             'page',
         )
     })
+
+    it('initiates a payment via POST with a body and an Idempotency-Key header', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(ok(page(SAMPLE)))
+        renderPayments()
+        await screen.findByText('order-1')
+
+        fireEvent.click(screen.getByRole('button', { name: 'New payment' }))
+        fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '250.50' } })
+        fireEvent.change(screen.getByLabelText('Reference'), { target: { value: 'order-42' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+        await waitFor(() => {
+            const post = fetchMock.mock.calls.find(
+                (c) => String(c[0]).endsWith('/v1/payments') && c[1]?.method === 'POST',
+            )
+            expect(post).toBeTruthy()
+            const init = post?.[1] as RequestInit
+            const headers = init.headers as Record<string, string>
+            expect(headers['Idempotency-Key']).toBeTruthy()
+            const body = JSON.parse(String(init.body))
+            expect(typeof body.amount).toBe('number')
+            expect(body).toMatchObject({ amount: 250.5, currency: 'USD', reference: 'order-42' })
+        })
+    })
+
+    it('disables Create until the form is valid', async () => {
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue(ok(page(SAMPLE)))
+        renderPayments()
+        await screen.findByText('order-1')
+
+        fireEvent.click(screen.getByRole('button', { name: 'New payment' }))
+        expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled()
+
+        fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '0' } })
+        fireEvent.change(screen.getByLabelText('Reference'), { target: { value: 'r' } })
+        expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled()
+
+        fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } })
+        expect(screen.getByRole('button', { name: 'Create' })).toBeEnabled()
+    })
+
+    it('surfaces an error when initiation fails', async () => {
+        vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
+            if ((init as RequestInit)?.method === 'POST') return Promise.reject(new Error('boom'))
+            void input
+            return Promise.resolve(ok(page(SAMPLE)))
+        })
+        renderPayments()
+        await screen.findByText('order-1')
+
+        fireEvent.click(screen.getByRole('button', { name: 'New payment' }))
+        fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } })
+        fireEvent.change(screen.getByLabelText('Reference'), { target: { value: 'order-9' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('Could not create the payment')
+    })
 })

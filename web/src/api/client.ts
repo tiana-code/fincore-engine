@@ -19,10 +19,18 @@ export async function apiFetch<T>(path: string): Promise<T> {
     return (await response.json()) as T
 }
 
-export async function apiPost<T>(path: string): Promise<T> {
-    const headers: Record<string, string> = { Accept: 'application/json' }
+export async function apiPost<T>(
+    path: string,
+    options: { body?: unknown; headers?: Record<string, string> } = {},
+): Promise<T> {
+    const headers: Record<string, string> = { Accept: 'application/json', ...options.headers }
     if (DEV_BEARER) headers.Authorization = `Bearer ${DEV_BEARER}`
-    const response = await fetch(`${BASE_URL}${path}`, { method: 'POST', headers })
+    const init: RequestInit = { method: 'POST', headers }
+    if (options.body !== undefined) {
+        headers['Content-Type'] = 'application/json'
+        init.body = JSON.stringify(options.body)
+    }
+    const response = await fetch(`${BASE_URL}${path}`, init)
     if (!response.ok) throw new ApiError(response.status)
     return (await response.json()) as T
 }

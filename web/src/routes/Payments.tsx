@@ -5,14 +5,18 @@ import { useState } from 'react'
 import { Shell } from '@/components/Shell'
 import { StateMessage } from '@/components/StateMessage'
 import { Pagination } from '@/features/accounts/Pagination'
+import { PaymentForm } from '@/features/payments/PaymentForm'
 import { PaymentsTable } from '@/features/payments/PaymentsTable'
+import { useInitiatePayment } from '@/features/payments/useInitiatePayment'
 import { usePayments } from '@/features/payments/usePayments'
 
 const PAGE_SIZE = 20
 
 export function Payments() {
     const [page, setPage] = useState(0)
+    const [showForm, setShowForm] = useState(false)
     const { data, isPending, isError, refetch } = usePayments(page, PAGE_SIZE)
+    const create = useInitiatePayment()
 
     return (
         <Shell activeNav="Payments">
@@ -26,6 +30,38 @@ export function Payments() {
                     minHeight: 0,
                 }}
             >
+                <div>
+                    <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => {
+                            create.reset()
+                            setShowForm((open) => !open)
+                        }}
+                    >
+                        {showForm ? 'Close' : 'New payment'}
+                    </button>
+                </div>
+                {showForm && (
+                    <PaymentForm
+                        pending={create.isPending}
+                        onCancel={() => {
+                            create.reset()
+                            setShowForm(false)
+                        }}
+                        onSubmit={(payment) =>
+                            create.mutate(
+                                { payment, idempotencyKey: crypto.randomUUID() },
+                                { onSuccess: () => setShowForm(false) },
+                            )
+                        }
+                    />
+                )}
+                {create.isError && (
+                    <div role="alert" style={{ fontSize: 12, color: 'var(--text-err)' }}>
+                        Could not create the payment. Try again.
+                    </div>
+                )}
                 <div
                     className="card"
                     style={{
