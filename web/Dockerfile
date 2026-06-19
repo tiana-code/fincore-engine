@@ -9,6 +9,9 @@ COPY . .
 RUN npm run build
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
+USER root
+RUN apk upgrade --no-cache libcrypto3 libssl3
+USER 101
 COPY --from=builder /web/dist /usr/share/nginx/html
 COPY default.conf /etc/nginx/conf.d/default.conf
 EXPOSE 8080
