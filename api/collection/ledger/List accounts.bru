@@ -1,0 +1,23 @@
+meta {
+  name: List accounts
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{ledgerUrl}}/v1/accounts?limit=20
+  body: none
+  auth: none
+}
+
+params:query {
+  limit: 20
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: ledger:read. Cursor-paginated: add &cursor=... from a previous response's nextCursor.
+}

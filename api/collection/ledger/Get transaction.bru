@@ -1,0 +1,19 @@
+meta {
+  name: Get transaction
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{ledgerUrl}}/v1/transactions/{{transactionId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: ledger:read. Returns the transaction with its entries.
+}

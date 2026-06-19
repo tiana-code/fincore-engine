@@ -1,0 +1,29 @@
+meta {
+  name: Create account
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{ledgerUrl}}/v1/accounts
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Idempotency-Key: {{idempotencyKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Customer Wallet USD",
+    "type": "USER_WALLET",
+    "currency": "USD"
+  }
+}
+
+docs {
+  Scope: ledger:write. Requires an Idempotency-Key. type is one of ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE, USER_WALLET, FEE, RESERVE, SUSPENSE.
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Get account balance
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{ledgerUrl}}/v1/accounts/{{accountId}}/balance
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: ledger:read.
+}

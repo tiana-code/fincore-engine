@@ -1,0 +1,27 @@
+meta {
+  name: Publish rule version
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{decisionUrl}}/v1/decision/rules/{{ruleKey}}/versions
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "condition": { "attr": "amount", "op": "gte", "value": 0 },
+    "outcome": { "label": "APPROVE" }
+  }
+}
+
+docs {
+  Scope: decision:write. The body is the rule's JSON DSL; it is validated fail-closed before storage. No Idempotency-Key by design.
+}

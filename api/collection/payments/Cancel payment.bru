@@ -1,0 +1,19 @@
+meta {
+  name: Cancel payment
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{paymentsUrl}}/v1/payments/{{paymentId}}/cancel
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: payments:write. Only valid before submission.
+}

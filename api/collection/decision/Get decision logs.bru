@@ -1,0 +1,23 @@
+meta {
+  name: Get decision logs
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{decisionUrl}}/v1/decision/logs?inputHash={{inputHash}}
+  body: none
+  auth: none
+}
+
+params:query {
+  inputHash: {{inputHash}}
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: decision:read. Provide exactly one of inputHash or ruleVersionId; with neither (or both) the request returns 400.
+}

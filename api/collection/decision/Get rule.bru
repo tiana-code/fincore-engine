@@ -1,0 +1,19 @@
+meta {
+  name: Get rule
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{decisionUrl}}/v1/decision/rules/{{ruleKey}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: decision:read.
+}

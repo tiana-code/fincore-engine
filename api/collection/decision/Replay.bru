@@ -1,0 +1,32 @@
+meta {
+  name: Replay
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{decisionUrl}}/v1/decision/replay
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "candidate": {
+      "condition": { "attr": "amount", "op": "gte", "value": 0 },
+      "outcome": { "label": "APPROVE" }
+    },
+    "inputs": [
+      { "amount": 100 }
+    ]
+  }
+}
+
+docs {
+  Scope: decision:write. Read-only diff of a candidate DSL against recorded decisions; writes nothing.
+}

@@ -1,0 +1,29 @@
+meta {
+  name: Initiate payment
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{paymentsUrl}}/v1/payments
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Idempotency-Key: {{idempotencyKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "amount": "100.00",
+    "currency": "USD",
+    "reference": "demo-order-1"
+  }
+}
+
+docs {
+  Scope: payments:write. Requires an Idempotency-Key. amount must be positive; currency is an ISO 4217 code.
+}
