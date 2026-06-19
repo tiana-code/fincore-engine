@@ -34,7 +34,7 @@ class KycSession(
         return value
     }
 
-    private companion object {
+    companion object {
         const val MAX_SUBJECT_REFERENCE_LENGTH = 140
     }
 }
