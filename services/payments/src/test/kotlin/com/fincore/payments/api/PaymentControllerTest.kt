@@ -8,6 +8,7 @@ import com.fincore.core.Money
 import com.fincore.core.PaymentId
 import com.fincore.payments.api.mapper.PaymentApiMapper
 import com.fincore.payments.application.PaymentConcurrencyException
+import com.fincore.payments.application.PaymentPage
 import com.fincore.payments.application.PaymentService
 import com.fincore.payments.config.SecurityConfig
 import com.fincore.payments.domain.Payment
@@ -136,6 +137,30 @@ class PaymentControllerTest(
             .perform(get("/v1/payments/${payment.id}").with(jwt().authorities(SimpleGrantedAuthority(READ))))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.id").value(payment.id.toString()))
+    }
+
+    @Test
+    fun `should list payments as a page with read scope`() {
+        every { paymentService.list(0, 20) } returns
+            PaymentPage(listOf(payment(PaymentStatus.INITIATED)), 0, 20, 1, 1)
+
+        mockMvc
+            .perform(get("/v1/payments").with(jwt().authorities(SimpleGrantedAuthority(READ))))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.items[0].status").value("INITIATED"))
+            .andExpect(jsonPath("$.totalElements").value(1))
+    }
+
+    @Test
+    fun `should return 401 when listing payments without a token`() {
+        mockMvc.perform(get("/v1/payments")).andExpect(status().isUnauthorized)
+    }
+
+    @Test
+    fun `should return 400 when listing with an invalid page size`() {
+        mockMvc
+            .perform(get("/v1/payments?size=0").with(jwt().authorities(SimpleGrantedAuthority(READ))))
+            .andExpect(status().isBadRequest)
     }
 
     @Test

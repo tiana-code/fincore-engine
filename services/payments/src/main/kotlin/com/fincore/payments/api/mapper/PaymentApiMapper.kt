@@ -6,8 +6,10 @@ package com.fincore.payments.api.mapper
 import com.fincore.core.Currency
 import com.fincore.core.Money
 import com.fincore.payments.api.dto.request.InitiatePaymentRequest
+import com.fincore.payments.api.dto.response.PageResponse
 import com.fincore.payments.api.dto.response.PaymentResponse
 import com.fincore.payments.application.InitiatePaymentCommand
+import com.fincore.payments.application.PaymentPage
 import com.fincore.payments.domain.Payment
 import org.springframework.stereotype.Component
 
@@ -31,5 +33,14 @@ class PaymentApiMapper {
             amount = payment.amount.amount,
             currency = payment.amount.currency.code,
             status = payment.status.name,
+        )
+
+    fun toPageResponse(page: PaymentPage): PageResponse<PaymentResponse> =
+        PageResponse(
+            items = page.items.map(::toResponse),
+            page = page.page,
+            size = page.size,
+            totalElements = page.totalElements,
+            totalPages = page.totalPages,
         )
 }

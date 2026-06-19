@@ -84,6 +84,18 @@ class PaymentServiceIT(
     }
 
     @Test
+    fun `should list initiated payments as a page newest first`() {
+        service.initiate(InitiatePaymentCommand("key-1", money(), "order-1"))
+        service.initiate(InitiatePaymentCommand("key-2", money(), "order-2"))
+
+        val page = service.list(0, 20)
+
+        page.totalElements shouldBe 2L
+        page.items.size shouldBe 2
+        page.items.first().reference shouldBe "order-2"
+    }
+
+    @Test
     fun `should cancel an initiated payment and emit a cancelled event`() {
         val payment = service.initiate(InitiatePaymentCommand("key-1", money(), "order-1"))
 

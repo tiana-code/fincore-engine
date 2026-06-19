@@ -9,6 +9,11 @@ import com.fincore.payments.domain.Payment
 interface PaymentService {
     fun initiate(command: InitiatePaymentCommand): Payment
 
+    fun list(
+        page: Int,
+        size: Int,
+    ): PaymentPage
+
     fun get(id: PaymentId): Payment
 
     fun cancel(id: PaymentId): Payment

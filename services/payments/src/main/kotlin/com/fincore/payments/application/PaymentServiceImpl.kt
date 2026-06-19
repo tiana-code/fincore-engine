@@ -16,6 +16,8 @@ import com.fincore.payments.infrastructure.persistence.PaymentEventEntity
 import com.fincore.payments.infrastructure.persistence.PaymentEventRepository
 import com.fincore.payments.infrastructure.persistence.PaymentPersistenceAdapter
 import com.fincore.payments.infrastructure.persistence.PaymentRepository
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -42,6 +44,22 @@ class PaymentServiceImpl(
                 if (attempt >= MAX_ATTEMPTS) throw PaymentConcurrencyException(race)
             }
         }
+    }
+
+    @Transactional(readOnly = true)
+    override fun list(
+        page: Int,
+        size: Int,
+    ): PaymentPage {
+        val pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")))
+        val result = paymentRepository.findAll(pageable)
+        return PaymentPage(
+            items = result.content.map(adapter::toDomain),
+            page = page,
+            size = size,
+            totalElements = result.totalElements,
+            totalPages = result.totalPages,
+        )
     }
 
     @Transactional(readOnly = true)
