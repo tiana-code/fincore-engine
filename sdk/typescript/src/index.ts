@@ -3,4 +3,15 @@
 
 export { FincoreClient, FincoreError } from './client.js'
 export type { FetchFn, FincoreClientOptions } from './client.js'
-export type { Account, AccountStatus, AccountType, Page } from './types.js'
+export type {
+    Account,
+    AccountStatus,
+    AccountType,
+    Balance,
+    Entry,
+    EntryDirection,
+    Page,
+    Transaction,
+    TransactionDetail,
+    TransactionStatus,
+} from './types.js'

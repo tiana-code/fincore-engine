@@ -45,6 +45,36 @@ describe('FincoreClient', () => {
         expect(fetchFn.mock.calls[0]?.[0]).toBe('http://host/v1/accounts/a%2Fb')
     })
 
+    it('gets an account balance with a string amount', async () => {
+        const balance = { accountId: 'acc_1', currency: 'USD', amount: '100.00', lastPostedAt: null }
+        const fetchFn = mockFetch(balance)
+        const result = await new FincoreClient({ baseUrl: 'http://host', fetch: fetchFn }).getBalance('acc_1')
+        expect(result.amount).toBe('100.00')
+        expect(fetchFn.mock.calls[0]?.[0]).toBe('http://host/v1/accounts/acc_1/balance')
+    })
+
+    it('lists transactions and decodes the page', async () => {
+        const tx = { id: 'tx_1', reference: 'r1', status: 'POSTED', postedAt: '2026-06-19T00:00:00Z' }
+        const body = { items: [tx], page: 0, size: 20, totalElements: 1, totalPages: 1 }
+        const page = await new FincoreClient({ baseUrl: 'http://host', fetch: mockFetch(body) }).listTransactions()
+        expect(page.items[0]?.status).toBe('POSTED')
+    })
+
+    it('gets a transaction with its entries', async () => {
+        const detail = {
+            id: 'tx_1',
+            reference: 'r1',
+            description: null,
+            status: 'POSTED',
+            reversesId: null,
+            postedAt: '2026-06-19T00:00:00Z',
+            entries: [{ accountId: 'acc_1', direction: 'DEBIT', amount: '100.00', currency: 'USD' }],
+        }
+        const result = await new FincoreClient({ baseUrl: 'http://host', fetch: mockFetch(detail) }).getTransaction('tx_1')
+        expect(result.entries[0]?.direction).toBe('DEBIT')
+        expect(result.entries[0]?.amount).toBe('100.00')
+    })
+
     it('throws FincoreError with the status on a non-2xx response', async () => {
         const client = new FincoreClient({ baseUrl: 'http://host', fetch: mockFetch({ detail: 'not found' }, 404) })
         await expect(client.getAccount('missing')).rejects.toBeInstanceOf(FincoreError)

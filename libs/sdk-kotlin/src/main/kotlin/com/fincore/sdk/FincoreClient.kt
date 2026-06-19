@@ -8,7 +8,10 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fincore.sdk.model.Account
+import com.fincore.sdk.model.Balance
 import com.fincore.sdk.model.Page
+import com.fincore.sdk.model.Transaction
+import com.fincore.sdk.model.TransactionDetail
 import java.net.URI
 import java.net.URLEncoder
 import java.net.http.HttpClient
@@ -30,8 +33,19 @@ class FincoreClient(
         size: Int = DEFAULT_PAGE_SIZE,
     ): Page<Account> = mapper.readValue(get("/v1/accounts?page=$page&size=$size"), ACCOUNT_PAGE)
 
-    fun getAccount(id: String): Account =
-        mapper.readValue(get("/v1/accounts/${URLEncoder.encode(id, StandardCharsets.UTF_8)}"), Account::class.java)
+    fun getAccount(id: String): Account = mapper.readValue(get("/v1/accounts/${encode(id)}"), Account::class.java)
+
+    fun getBalance(accountId: String): Balance = mapper.readValue(get("/v1/accounts/${encode(accountId)}/balance"), Balance::class.java)
+
+    fun listTransactions(
+        page: Int = 0,
+        size: Int = DEFAULT_PAGE_SIZE,
+    ): Page<Transaction> = mapper.readValue(get("/v1/transactions?page=$page&size=$size"), TRANSACTION_PAGE)
+
+    fun getTransaction(id: String): TransactionDetail =
+        mapper.readValue(get("/v1/transactions/${encode(id)}"), TransactionDetail::class.java)
+
+    private fun encode(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20")
 
     private fun get(path: String): String {
         val builder =
@@ -57,6 +71,7 @@ class FincoreClient(
         const val HTTP_OK_MIN = 200
         const val HTTP_OK_MAX = 299
         val ACCOUNT_PAGE = object : TypeReference<Page<Account>>() {}
+        val TRANSACTION_PAGE = object : TypeReference<Page<Transaction>>() {}
 
         fun defaultMapper(): ObjectMapper =
             jacksonObjectMapper().apply { configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false) }
