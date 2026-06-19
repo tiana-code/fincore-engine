@@ -9,4 +9,6 @@ import java.util.UUID
 
 interface AmlAlertRepository : JpaRepository<AmlAlertEntity, UUID> {
     fun findByStatus(status: AmlAlertStatus): List<AmlAlertEntity>
+
+    fun findBySubjectReference(subjectReference: String): List<AmlAlertEntity>
 }

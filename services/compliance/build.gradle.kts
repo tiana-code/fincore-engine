@@ -17,6 +17,8 @@ kotlin {
 
 dependencies {
     implementation(project(":libs:fincore-core"))
+    implementation(project(":libs:fincore-events"))
+    implementation(project(":libs:fincore-eventbus"))
     implementation(project(":libs:fincore-observability"))
     implementation(project(":libs:decision-engine"))
 
@@ -48,6 +50,7 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.testcontainers.core)
     testImplementation(libs.testcontainers.postgres)
+    testImplementation(libs.testcontainers.redpanda)
     testImplementation(libs.testcontainers.junit5)
 }
 

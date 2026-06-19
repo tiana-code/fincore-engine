@@ -52,7 +52,9 @@ class ComplianceSchemaPersistenceIT(
 
     @Test
     fun `should find aml alerts by status`() {
-        amlAlerts.saveAndFlush(AmlAlertEntity(UUID.randomUUID(), "aml.velocity", AmlAlertStatus.OPEN, Instant.now(), 0L))
+        amlAlerts.saveAndFlush(
+            AmlAlertEntity(UUID.randomUUID(), "aml.velocity", "subject-1", AmlAlertStatus.OPEN, Instant.now(), 0L),
+        )
 
         amlAlerts.findByStatus(AmlAlertStatus.OPEN).size shouldBe 1
     }
