@@ -6,6 +6,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { AccountDetail } from '@/routes/AccountDetail'
 import { Accounts } from '@/routes/Accounts'
+import { Cases } from '@/routes/Cases'
 import { Overview } from '@/routes/Overview'
 import { TransactionDetail } from '@/routes/TransactionDetail'
 import { Transactions } from '@/routes/Transactions'
@@ -23,6 +24,7 @@ export function App() {
                         <Route path="/accounts/:id" element={<AccountDetail />} />
                         <Route path="/transactions" element={<Transactions />} />
                         <Route path="/transactions/:id" element={<TransactionDetail />} />
+                        <Route path="/compliance/cases" element={<Cases />} />
                     </Routes>
                 </BrowserRouter>
             </ThemeProvider>

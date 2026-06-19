@@ -78,3 +78,11 @@ export interface BalanceResponse {
     amount: string
     lastPostedAt: string | null
 }
+
+export type CaseStatus = 'OPEN' | 'CLAIMED' | 'ESCALATED' | 'RESOLVED'
+
+export interface CaseResponse {
+    id: string
+    reference: string
+    status: CaseStatus
+}
