@@ -47,6 +47,11 @@ services:
       FINCORE_PAYMENTS_BANK_SANDBOX_ENABLED: "true"
       OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
 
+  web:
+    build: ./web
+    ports:
+      - "8082:8080"
+
   # Opt-in telemetry backends. Started only with `docker compose --profile observability up`;
   # the default stack (and the CI compose smoke) never starts these.
   otel-collector:
