@@ -34,3 +34,21 @@ jobs:
           npm install
           npm run typecheck
           npm run build
+
+  webhook-receiver:
+    name: webhook-receiver typecheck & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: examples/webhook-receiver/package-lock.json
+      - name: Install, typecheck, test and build
+        working-directory: examples/webhook-receiver
+        run: |
+          npm ci
+          npm run typecheck
+          npm run test
+          npm run build
