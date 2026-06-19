@@ -3,8 +3,12 @@
 useDefault = true
 
 [allowlist]
-description = "Sandbox demo Keycloak realm + token-proof script: a documented, intentionally public demo client secret, not a real credential"
+description = "Documented, intentionally public sandbox demo secrets (Keycloak realm + demo scripts + compose webhook secret), not real credentials"
 paths = [
     '''^deploy/keycloak/fincore-realm\.json$''',
     '''^scripts/demo-auth\.sh$''',
+    '''^scripts/demo-payment\.sh$''',
+]
+regexes = [
+    '''sandbox-webhook-secret''',
 ]

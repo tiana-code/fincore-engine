@@ -142,6 +142,10 @@ jobs:
     permissions:
       contents: read
 
+    # Shared by `docker compose up` (the payments service) and demo-payment.sh so both sign/verify with the same secret.
+    env:
+      FINCORE_PAYMENTS_WEBHOOK_HMACSECRET: sandbox-webhook-secret
+
     # Step order is load-bearing: smoke -> logs (on failure) -> teardown (always).
     # `docker compose down` removes containers, so logs must be dumped before it.
     steps:
@@ -158,6 +162,9 @@ jobs:
 
       - name: Auth chain proof (token -> protected endpoint -> 200)
         run: bash scripts/demo-auth.sh
+
+      - name: Payment lifecycle demo (initiate -> SUBMITTED -> webhook -> SETTLED)
+        run: bash scripts/demo-payment.sh
 
       - name: Dump container logs on failure
         if: failure()
