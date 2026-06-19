@@ -1,0 +1,25 @@
+name: Shell
+
+on:
+  pull_request:
+    paths:
+      - "scripts/**"
+      - ".github/workflows/shell.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "scripts/**"
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Lint shell scripts
+        run: shellcheck scripts/fincore scripts/*.sh

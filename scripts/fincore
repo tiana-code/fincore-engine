@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: BUSL-1.1
+# SPDX-FileCopyrightText: 2026 FinCore Engine Authors
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+usage() {
+    cat <<'EOF'
+fincore - FinCore Engine sandbox helper
+
+Usage: fincore <command>
+
+Commands:
+  init        Scaffold a local .env with sandbox defaults
+  status      Check the health of the running sandbox services
+  run-demo    Run the ledger smoke demo (delegates to scripts/demo.sh)
+  help        Show this help
+EOF
+}
+
+cmd_init() {
+    local env_file="$ROOT_DIR/.env"
+    if [ -e "$env_file" ]; then
+        echo "$env_file already exists; leaving it untouched"
+        return 0
+    fi
+    cat >"$env_file" <<'EOF'
+# FinCore Engine sandbox environment (local development only).
+POSTGRES_PASSWORD=ledger
+GRAFANA_ADMIN_PASSWORD=admin
+EOF
+    echo "wrote $env_file"
+    echo "next: 'docker compose up -d', then 'fincore status'"
+}
+
+check() {
+    local name="$1" url="$2"
+    if curl -fsS -o /dev/null --max-time 5 "$url"; then
+        echo "UP    $name ($url)"
+    else
+        echo "DOWN  $name ($url)"
+        return 1
+    fi
+}
+
+cmd_status() {
+    local rc=0
+    check "ledger" "http://localhost:8080/actuator/health/readiness" || rc=1
+    check "payments" "http://localhost:8081/actuator/health/readiness" || rc=1
+    check "web" "http://localhost:8082/" || rc=1
+    return "$rc"
+}
+
+cmd_run_demo() {
+    exec "$ROOT_DIR/scripts/demo.sh" "$@"
+}
+
+main() {
+    local command="${1:-help}"
+    shift || true
+    case "$command" in
+        init) cmd_init ;;
+        status) cmd_status ;;
+        run-demo) cmd_run_demo "$@" ;;
+        help | -h | --help) usage ;;
+        *)
+            echo "unknown command: $command" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+}
+
+main "$@"
