@@ -89,6 +89,16 @@ class ObservabilityIT(
     }
 
     @Test
+    fun `should report the posting timer with a success outcome after a transaction is posted`() {
+        postBalanced()
+
+        val body = rest.getForEntity("/actuator/prometheus", String::class.java).body ?: ""
+
+        body shouldContain "ledger_transactions_posting_seconds_count"
+        body shouldContain "outcome=\"success\""
+    }
+
+    @Test
     fun `should expose a tracer bean and bind the tracing properties`() {
         tracer.shouldNotBeNull()
         environment.getProperty("management.tracing.sampling.probability").shouldNotBeNull()
