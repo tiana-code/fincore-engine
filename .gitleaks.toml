@@ -1,0 +1,10 @@
+# Extends the default gitleaks ruleset; only adds a path-scoped allowlist.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Sandbox demo Keycloak realm + token-proof script: a documented, intentionally public demo client secret, not a real credential"
+paths = [
+    '''^deploy/keycloak/fincore-realm\.json$''',
+    '''^scripts/demo-auth\.sh$''',
+]
