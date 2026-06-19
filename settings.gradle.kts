@@ -27,6 +27,7 @@ include(
     ":libs:fincore-observability",
     ":libs:fincore-test-support",
     ":libs:decision-engine",
+    ":libs:sdk-kotlin",
     ":services:ledger",
     ":services:decision",
     ":services:payments",
