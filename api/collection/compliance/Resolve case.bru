@@ -1,0 +1,19 @@
+meta {
+  name: Resolve case
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{complianceUrl}}/v1/compliance/cases/{{caseId}}/resolve
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: compliance:write. Marks the case RESOLVED (from CLAIMED or ESCALATED), or 409 if illegal.
+}

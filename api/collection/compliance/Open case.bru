@@ -1,0 +1,26 @@
+meta {
+  name: Open case
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{complianceUrl}}/v1/compliance/cases
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "reference": "case-ref-001"
+  }
+}
+
+docs {
+  Scope: compliance:write. reference is an opaque token (non-blank, max 140 chars). Opens the case in the OPEN state.
+}

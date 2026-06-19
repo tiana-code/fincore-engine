@@ -1,0 +1,19 @@
+meta {
+  name: Claim case
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{complianceUrl}}/v1/compliance/cases/{{caseId}}/claim
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: compliance:write. OPEN to CLAIMED, or 409 if the transition is illegal.
+}

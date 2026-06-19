@@ -1,0 +1,19 @@
+meta {
+  name: Get case
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{complianceUrl}}/v1/compliance/cases/{{caseId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: compliance:read. Fill caseId from an open/list response.
+}

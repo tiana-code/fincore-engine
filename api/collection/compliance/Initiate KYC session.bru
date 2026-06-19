@@ -1,0 +1,27 @@
+meta {
+  name: Initiate KYC session
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{complianceUrl}}/v1/kyc/sessions
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Idempotency-Key: {{idempotencyKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "subjectReference": "subject-001"
+  }
+}
+
+docs {
+  Scope: compliance:write. Requires an Idempotency-Key. subjectReference is an opaque token (non-blank, max 140 chars); a repeat with the same key returns the original session.
+}
