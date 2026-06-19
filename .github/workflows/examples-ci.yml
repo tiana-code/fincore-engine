@@ -1,0 +1,36 @@
+name: Examples CI
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["examples/**", "sdk/typescript/**", ".github/workflows/examples-ci.yml"]
+  pull_request:
+    paths: ["examples/**", "sdk/typescript/**", ".github/workflows/examples-ci.yml"]
+
+concurrency:
+  group: examples-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  node-quickstart:
+    name: node-quickstart typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build the local SDK dependency
+        working-directory: sdk/typescript
+        run: |
+          npm ci
+          npm run build
+      - name: Install and typecheck the example
+        working-directory: examples/node-quickstart
+        run: |
+          npm install
+          npm run typecheck
+          npm run build
