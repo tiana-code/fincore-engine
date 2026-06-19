@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: BUSL-1.1
+# SPDX-FileCopyrightText: 2026 FinCore Engine Authors
+databaseChangeLog:
+  - include:
+      file: v0.1/001-schema.sql
+      relativeToChangelogFile: true
+  - include:
+      file: v0.1/010-kyc-sessions.sql
+      relativeToChangelogFile: true
+  - include:
+      file: v0.1/011-aml-alerts.sql
+      relativeToChangelogFile: true
+  - include:
+      file: v0.1/012-compliance-cases.sql
+      relativeToChangelogFile: true
+  - include:
+      file: v0.1/013-aml-rules.sql
+      relativeToChangelogFile: true
