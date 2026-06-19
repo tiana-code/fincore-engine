@@ -29,6 +29,7 @@ class PaymentServiceImpl(
     private val adapter: PaymentPersistenceAdapter,
     private val outboxPublisher: PaymentOutboxEventPublisher,
     private val objectMapper: ObjectMapper,
+    private val metrics: PaymentMetrics,
 ) : PaymentService {
     override fun initiate(command: InitiatePaymentCommand): Payment {
         val keyHash = Sha256.hex(command.idempotencyKey)
@@ -57,6 +58,7 @@ class PaymentServiceImpl(
         payment.transitionTo(PaymentStatus.SCREENING)
         entity.status = payment.status
         paymentRepository.saveAndFlush(entity)
+        metrics.record(PaymentStatus.SCREENING)
         return payment
     }
 
@@ -72,6 +74,7 @@ class PaymentServiceImpl(
         entity.providerReference = providerReference
         paymentRepository.saveAndFlush(entity)
         recordEvent(payment, PaymentEvents.PaymentScreened)
+        metrics.record(PaymentStatus.SUBMITTED)
         return payment
     }
 
@@ -96,6 +99,7 @@ class PaymentServiceImpl(
         entity.status = payment.status
         paymentRepository.saveAndFlush(entity)
         recordEvent(payment, type, detail)
+        metrics.record(target)
         return payment
     }
 
@@ -103,6 +107,7 @@ class PaymentServiceImpl(
         val payment = Payment(PaymentId.generate(), command.amount, command.reference)
         paymentRepository.saveAndFlush(adapter.toNewEntity(payment, Instant.now()))
         recordEvent(payment, PaymentEvents.PaymentInitiated)
+        metrics.record(PaymentStatus.INITIATED)
         return payment
     }
 

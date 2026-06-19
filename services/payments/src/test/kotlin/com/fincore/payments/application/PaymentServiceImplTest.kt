@@ -35,6 +35,7 @@ class PaymentServiceImplTest {
     private val paymentEventRepository = mockk<PaymentEventRepository>(relaxed = true)
     private val outboxPublisher = mockk<PaymentOutboxEventPublisher>(relaxed = true)
     private val objectMapper = mockk<ObjectMapper> { every { writeValueAsString(any()) } returns "{}" }
+    private val metrics = mockk<PaymentMetrics>(relaxed = true)
     private val service =
         PaymentServiceImpl(
             idempotencyStore,
@@ -43,6 +44,7 @@ class PaymentServiceImplTest {
             PaymentPersistenceAdapter(),
             outboxPublisher,
             objectMapper,
+            metrics,
         )
 
     init {

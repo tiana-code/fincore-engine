@@ -34,4 +34,13 @@ class LedgerMetricsTest {
 
         registry.counter("ledger.balance.reads").count() shouldBe 2.0
     }
+
+    @Test
+    fun `should record the posting timer under the matching outcome tag`() {
+        metrics.recordPosting(success = true, durationNanos = 1_000_000L)
+        metrics.recordPosting(success = false, durationNanos = 2_000_000L)
+
+        registry.timer("ledger.transactions.posting", "outcome", "success").count() shouldBe 1L
+        registry.timer("ledger.transactions.posting", "outcome", "failure").count() shouldBe 1L
+    }
 }

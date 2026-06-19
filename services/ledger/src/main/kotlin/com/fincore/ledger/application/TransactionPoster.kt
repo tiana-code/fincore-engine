@@ -50,6 +50,18 @@ class TransactionPoster(
 ) {
     @Transactional
     fun post(command: PostTransactionCommand): PostedTransaction {
+        val start = System.nanoTime()
+        var succeeded = false
+        try {
+            val posted = doPost(command)
+            succeeded = true
+            return posted
+        } finally {
+            ledgerMetrics.recordPosting(succeeded, System.nanoTime() - start)
+        }
+    }
+
+    private fun doPost(command: PostTransactionCommand): PostedTransaction {
         val transaction = buildDomain(command)
         guardAccounts(transaction, command.currency)
         if (transactionRepository.existsByReference(command.reference)) {
