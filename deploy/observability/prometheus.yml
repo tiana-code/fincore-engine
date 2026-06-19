@@ -1,0 +1,14 @@
+# Prometheus scrape config for the local observability profile.
+# Targets use the compose service name and the CONTAINER port 8080 (not the host-published 8081).
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: ledger
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["ledger:8080"]
+  - job_name: payments
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["payments:8080"]

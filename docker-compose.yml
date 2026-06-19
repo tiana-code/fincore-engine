@@ -27,6 +27,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-ledger}
       KEYCLOAK_ISSUER_URI: http://localhost/realms/fincore
       SPRING_LIQUIBASE_CONTEXTS: production,demo
+      OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
 
   payments:
     build:
@@ -44,3 +45,55 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-ledger}
       KEYCLOAK_ISSUER_URI: http://localhost/realms/fincore
       FINCORE_PAYMENTS_BANK_SANDBOX_ENABLED: "true"
+      OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
+
+  # Opt-in telemetry backends. Started only with `docker compose --profile observability up`;
+  # the default stack (and the CI compose smoke) never starts these.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.114.0
+    profiles: [observability]
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./deploy/observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4318:4318"
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    profiles: [observability]
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./deploy/observability/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+
+  loki:
+    image: grafana/loki:3.2.1
+    profiles: [observability]
+    command: ["-config.file=/etc/loki/loki-config.yaml"]
+    volumes:
+      - ./deploy/observability/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki-data:/tmp/loki
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    profiles: [observability]
+    volumes:
+      - ./deploy/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    profiles: [observability]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+    volumes:
+      - ./deploy/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+
+volumes:
+  tempo-data:
+  loki-data:

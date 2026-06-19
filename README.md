@@ -51,6 +51,19 @@ docker compose -f deploy/docker-compose.yml up -d
 
 Full guide: [Getting Started](https://github.com/tiana-code/fincore-engine/wiki/Getting-Started)
 
+### Observability profile (optional)
+
+The telemetry backends are an opt-in Compose profile, so the default stack stays lean:
+
+```bash
+docker compose --profile observability up -d
+```
+
+This adds Prometheus (`:9090`, scrapes the services' `/actuator/prometheus`), Grafana (`:3000`, anonymous access
+enabled, datasources pre-provisioned), Tempo (receives OTLP traces via the OpenTelemetry collector) and Loki. The
+services export traces to the collector automatically when the profile is up. Loki is provisioned as a datasource;
+shipping the services' JSON logs into it (a log shipper) is a follow-up - until then use `docker compose logs`.
+
 ---
 
 ## Repository layout
