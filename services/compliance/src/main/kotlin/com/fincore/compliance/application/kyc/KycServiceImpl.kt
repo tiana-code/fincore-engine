@@ -16,9 +16,22 @@ import java.time.Instant
 class KycServiceImpl(
     private val repository: KycSessionRepository,
     private val adapter: KycSessionPersistenceAdapter,
+    private val idempotencyStore: KycIdempotencyStore,
 ) : KycService {
-    @Transactional
     override fun initiate(command: InitiateKycSessionCommand): KycSession {
+        val keyHash = Sha256.hex(command.idempotencyKey)
+        var attempt = 0
+        while (true) {
+            try {
+                return idempotencyStore.reserveOrRun(keyHash) { createSession(command) }
+            } catch (race: KycIdempotencyRaceException) {
+                attempt++
+                if (attempt >= MAX_ATTEMPTS) throw KycConcurrencyException(race)
+            }
+        }
+    }
+
+    private fun createSession(command: InitiateKycSessionCommand): KycSession {
         val session = KycSession(KycSessionId.generate(), command.subjectReference)
         repository.saveAndFlush(adapter.toNewEntity(session, Instant.now()))
         return session
@@ -47,5 +60,9 @@ class KycServiceImpl(
         entity.status = session.status
         repository.saveAndFlush(entity)
         return session
+    }
+
+    private companion object {
+        const val MAX_ATTEMPTS = 3
     }
 }

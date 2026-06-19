@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.net.URI
@@ -27,12 +28,16 @@ class KycController(
     private val kycService: KycService,
     private val mapper: KycApiMapper,
 ) {
-    @Operation(summary = "Start a KYC session", description = "Creates a session in the INITIATED state.")
+    @Operation(
+        summary = "Start a KYC session",
+        description = "Creates a session in the INITIATED state; idempotent on the Idempotency-Key header.",
+    )
     @PostMapping
     fun initiate(
+        @RequestHeader("Idempotency-Key") idempotencyKey: String,
         @Valid @RequestBody request: CreateKycSessionRequest,
     ): ResponseEntity<KycSessionResponse> {
-        val response = mapper.toResponse(kycService.initiate(mapper.toCommand(request)))
+        val response = mapper.toResponse(kycService.initiate(mapper.toCommand(request, idempotencyKey)))
         return ResponseEntity.created(URI.create("/v1/kyc/sessions/${response.id}")).body(response)
     }
 
