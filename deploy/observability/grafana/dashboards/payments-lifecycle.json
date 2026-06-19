@@ -1,0 +1,43 @@
+{
+  "uid": "fincore-payments-lifecycle",
+  "title": "FinCore Payments Lifecycle",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "tags": ["fincore", "observability", "payments"],
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Lifecycle transitions (per second, by status)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(payments_lifecycle_total[5m])) by (status)",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Settled payments (cumulative since start)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(payments_lifecycle_total{status=\"settled\"})",
+          "legendFormat": "settled",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}
