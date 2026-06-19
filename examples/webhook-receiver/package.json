@@ -1,0 +1,19 @@
+{
+  "name": "fincore-example-webhook-receiver",
+  "version": "0.1.0",
+  "description": "Local HMAC-verifying receiver for FinCore payment webhooks",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "start": "node dist/index.js"
+  },
+  "license": "BUSL-1.1",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "~5.6.3",
+    "vitest": "^3.0.5"
+  }
+}
