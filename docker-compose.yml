@@ -91,6 +91,7 @@ services:
       GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
     volumes:
       - ./deploy/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports:
       - "3000:3000"
 
