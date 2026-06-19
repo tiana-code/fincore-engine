@@ -34,6 +34,8 @@ logging:
   structured:
     format:
       console: logstash
+    json:
+      customizer: com.fincore.observability.PiiMaskingMembersCustomizer
 management:
   endpoint:
     health:

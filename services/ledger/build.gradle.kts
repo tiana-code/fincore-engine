@@ -20,6 +20,7 @@ dependencies {
     implementation(project(":libs:fincore-core"))
     implementation(project(":libs:fincore-events"))
     implementation(project(":libs:fincore-eventbus"))
+    implementation(project(":libs:fincore-observability"))
 
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlin.reflect)
