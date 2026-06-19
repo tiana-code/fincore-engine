@@ -4,6 +4,7 @@
 package com.fincore.compliance.application.kyc
 
 import com.fincore.compliance.domain.enum.KycStatus
+import com.fincore.compliance.infrastructure.persistence.KycIdempotencyKeyRepository
 import com.fincore.compliance.infrastructure.persistence.KycSessionPersistenceAdapter
 import com.fincore.compliance.infrastructure.persistence.KycSessionRepository
 import com.fincore.test.containers.PostgresContainerExtension
@@ -24,19 +25,21 @@ import org.springframework.transaction.annotation.Transactional
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 @ExtendWith(PostgresContainerExtension::class)
-@Import(KycServiceImpl::class, KycSessionPersistenceAdapter::class)
+@Import(KycServiceImpl::class, KycSessionPersistenceAdapter::class, KycIdempotencyStore::class)
 class KycServicePersistenceIT(
     @Autowired private val service: KycService,
     @Autowired private val repository: KycSessionRepository,
+    @Autowired private val keys: KycIdempotencyKeyRepository,
 ) {
     @AfterEach
     fun cleanUp() {
+        keys.deleteAll()
         repository.deleteAll()
     }
 
     @Test
     fun `should initiate then get a session round-tripping through postgres`() {
-        val initiated = service.initiate(InitiateKycSessionCommand("subject-1"))
+        val initiated = service.initiate(InitiateKycSessionCommand("key-1", "subject-1"))
 
         val reloaded = service.get(initiated.id)
         reloaded.id shouldBe initiated.id
@@ -46,11 +49,20 @@ class KycServicePersistenceIT(
 
     @Test
     fun `should persist the screening transition`() {
-        val initiated = service.initiate(InitiateKycSessionCommand("subject-2"))
+        val initiated = service.initiate(InitiateKycSessionCommand("key-2", "subject-2"))
 
         service.beginScreening(initiated.id)
 
         service.get(initiated.id).status shouldBe KycStatus.SCREENING
+    }
+
+    @Test
+    fun `should not create a second session when initiating twice with the same key`() {
+        val first = service.initiate(InitiateKycSessionCommand("key-1", "subject-1"))
+        val second = service.initiate(InitiateKycSessionCommand("key-1", "subject-1"))
+
+        second.id shouldBe first.id
+        repository.count() shouldBe 1L
     }
 
     companion object {

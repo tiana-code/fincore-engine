@@ -12,8 +12,10 @@ import org.springframework.stereotype.Component
 // Hand-written: the value-class KycSessionId crosses the wire as a prefixed-ULID string.
 @Component
 class KycApiMapper {
-    fun toCommand(request: CreateKycSessionRequest): InitiateKycSessionCommand =
-        InitiateKycSessionCommand(subjectReference = request.subjectReference)
+    fun toCommand(
+        request: CreateKycSessionRequest,
+        idempotencyKey: String,
+    ): InitiateKycSessionCommand = InitiateKycSessionCommand(idempotencyKey = idempotencyKey, subjectReference = request.subjectReference)
 
     fun toResponse(session: KycSession): KycSessionResponse =
         KycSessionResponse(

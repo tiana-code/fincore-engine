@@ -20,6 +20,12 @@ enum class ProblemType(
         "COMPLIANCE_CONFLICT",
         "illegal compliance state transition",
     ),
+    CONCURRENCY_CONFLICT(
+        "concurrency-conflict",
+        HttpStatus.SERVICE_UNAVAILABLE,
+        "CONCURRENCY_CONFLICT",
+        "concurrency conflict, retry",
+    ),
     VALIDATION_FAILED("validation-failed", HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "invalid request"),
     MALFORMED_REQUEST("malformed-request", HttpStatus.BAD_REQUEST, "MALFORMED_REQUEST", "invalid request"),
     INVALID_REQUEST("invalid-request", HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "invalid request"),

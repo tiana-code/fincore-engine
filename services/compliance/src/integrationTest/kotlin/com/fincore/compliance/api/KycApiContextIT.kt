@@ -62,6 +62,7 @@ class KycApiContextIT(
                 .perform(
                     post("/v1/kyc/sessions")
                         .with(jwt().authorities(SimpleGrantedAuthority(WRITE)))
+                        .header("Idempotency-Key", "key-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""{"subjectReference":"subject-1"}"""),
                 ).andExpect(status().isCreated)

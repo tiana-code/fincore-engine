@@ -4,6 +4,7 @@
 package com.fincore.compliance.application.kyc
 
 import com.fincore.compliance.domain.ComplianceDomainException
+import com.fincore.compliance.domain.KycSession
 import com.fincore.compliance.domain.enum.KycStatus
 import com.fincore.compliance.infrastructure.persistence.KycSessionEntity
 import com.fincore.compliance.infrastructure.persistence.KycSessionPersistenceAdapter
@@ -21,16 +22,25 @@ import java.util.UUID
 
 class KycServiceImplTest {
     private val repository = mockk<KycSessionRepository>()
-    private val service = KycServiceImpl(repository, KycSessionPersistenceAdapter())
+    private val idempotencyStore = mockk<KycIdempotencyStore>()
+    private val service = KycServiceImpl(repository, KycSessionPersistenceAdapter(), idempotencyStore)
 
     @Test
     fun `should create an initiated session when initiating`() {
         every { repository.saveAndFlush(any()) } answers { firstArg() }
+        every { idempotencyStore.reserveOrRun(any(), any()) } answers { secondArg<() -> KycSession>().invoke() }
 
-        val session = service.initiate(InitiateKycSessionCommand("subject-1"))
+        val session = service.initiate(InitiateKycSessionCommand("key-1", "subject-1"))
 
         session.status shouldBe KycStatus.INITIATED
         session.subjectReference shouldBe "subject-1"
+    }
+
+    @Test
+    fun `should throw a concurrency exception when the idempotency key keeps racing`() {
+        every { idempotencyStore.reserveOrRun(any(), any()) } throws KycIdempotencyRaceException(RuntimeException("dup"))
+
+        shouldThrow<KycConcurrencyException> { service.initiate(InitiateKycSessionCommand("key-1", "subject-1")) }
     }
 
     @Test

@@ -56,6 +56,7 @@ class KycControllerTest(
             .perform(
                 post("/v1/kyc/sessions")
                     .with(jwt().authorities(SimpleGrantedAuthority(WRITE)))
+                    .header(IDEMPOTENCY_KEY, "key-1")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(VALID_BODY),
             ).andExpect(status().isCreated)
@@ -65,8 +66,12 @@ class KycControllerTest(
     @Test
     fun `should return 401 when initiating without a token`() {
         mockMvc
-            .perform(post("/v1/kyc/sessions").contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
-            .andExpect(status().isUnauthorized)
+            .perform(
+                post("/v1/kyc/sessions")
+                    .header(IDEMPOTENCY_KEY, "key-1")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(VALID_BODY),
+            ).andExpect(status().isUnauthorized)
     }
 
     @Test
@@ -75,6 +80,7 @@ class KycControllerTest(
             .perform(
                 post("/v1/kyc/sessions")
                     .with(jwt().authorities(SimpleGrantedAuthority(READ)))
+                    .header(IDEMPOTENCY_KEY, "key-1")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(VALID_BODY),
             ).andExpect(status().isForbidden)
@@ -86,8 +92,20 @@ class KycControllerTest(
             .perform(
                 post("/v1/kyc/sessions")
                     .with(jwt().authorities(SimpleGrantedAuthority(WRITE)))
+                    .header(IDEMPOTENCY_KEY, "key-1")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"subjectReference":""}"""),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `should return 400 when the idempotency key header is missing`() {
+        mockMvc
+            .perform(
+                post("/v1/kyc/sessions")
+                    .with(jwt().authorities(SimpleGrantedAuthority(WRITE)))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(VALID_BODY),
             ).andExpect(status().isBadRequest)
     }
 
@@ -116,6 +134,7 @@ class KycControllerTest(
     private companion object {
         const val READ = "SCOPE_compliance:read"
         const val WRITE = "SCOPE_compliance:write"
+        const val IDEMPOTENCY_KEY = "Idempotency-Key"
         const val VALID_BODY = """{"subjectReference":"subject-1"}"""
     }
 }
