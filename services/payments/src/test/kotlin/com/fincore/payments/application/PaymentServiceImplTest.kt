@@ -8,6 +8,7 @@ import com.fincore.core.Currency
 import com.fincore.core.Money
 import com.fincore.core.PaymentId
 import com.fincore.events.PaymentEvents
+import com.fincore.payments.application.event.PaymentInitiatedEvent
 import com.fincore.payments.domain.Payment
 import com.fincore.payments.domain.enum.PaymentStatus
 import com.fincore.payments.domain.exception.PaymentDomainException
@@ -24,6 +25,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Test
+import org.springframework.context.ApplicationEventPublisher
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.Optional
@@ -36,6 +38,7 @@ class PaymentServiceImplTest {
     private val outboxPublisher = mockk<PaymentOutboxEventPublisher>(relaxed = true)
     private val objectMapper = mockk<ObjectMapper> { every { writeValueAsString(any()) } returns "{}" }
     private val metrics = mockk<PaymentMetrics>(relaxed = true)
+    private val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
     private val service =
         PaymentServiceImpl(
             idempotencyStore,
@@ -45,6 +48,7 @@ class PaymentServiceImplTest {
             outboxPublisher,
             objectMapper,
             metrics,
+            eventPublisher,
         )
 
     init {
@@ -60,6 +64,7 @@ class PaymentServiceImplTest {
 
         payment.status shouldBe PaymentStatus.INITIATED
         verify { outboxPublisher.publish(any(), "Payment", any(), PaymentEvents.PaymentInitiated.fullType, any()) }
+        verify { eventPublisher.publishEvent(PaymentInitiatedEvent(payment.id)) }
     }
 
     @Test

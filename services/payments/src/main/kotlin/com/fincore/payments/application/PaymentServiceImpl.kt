@@ -8,6 +8,7 @@ import com.fincore.core.PaymentId
 import com.fincore.events.EventEnvelope
 import com.fincore.events.EventType
 import com.fincore.events.PaymentEvents
+import com.fincore.payments.application.event.PaymentInitiatedEvent
 import com.fincore.payments.domain.Payment
 import com.fincore.payments.domain.enum.PaymentStatus
 import com.fincore.payments.domain.exception.PaymentNotFoundException
@@ -16,6 +17,7 @@ import com.fincore.payments.infrastructure.persistence.PaymentEventEntity
 import com.fincore.payments.infrastructure.persistence.PaymentEventRepository
 import com.fincore.payments.infrastructure.persistence.PaymentPersistenceAdapter
 import com.fincore.payments.infrastructure.persistence.PaymentRepository
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
@@ -24,133 +26,138 @@ import java.time.Instant
 import java.util.UUID
 
 @Service
-class PaymentServiceImpl(
-    private val idempotencyStore: PaymentIdempotencyStore,
-    private val paymentRepository: PaymentRepository,
-    private val paymentEventRepository: PaymentEventRepository,
-    private val adapter: PaymentPersistenceAdapter,
-    private val outboxPublisher: PaymentOutboxEventPublisher,
-    private val objectMapper: ObjectMapper,
-    private val metrics: PaymentMetrics,
-) : PaymentService {
-    override fun initiate(command: InitiatePaymentCommand): Payment {
-        val keyHash = Sha256.hex(command.idempotencyKey)
-        var attempt = 0
-        while (true) {
-            try {
-                return idempotencyStore.reserveOrRun(keyHash) { createPayment(command) }
-            } catch (race: PaymentIdempotencyRaceException) {
-                attempt++
-                if (attempt >= MAX_ATTEMPTS) throw PaymentConcurrencyException(race)
+class PaymentServiceImpl
+    @Suppress("LongParameterList") // cohesive collaborators of the payment write side; splitting them would not aid clarity
+    constructor(
+        private val idempotencyStore: PaymentIdempotencyStore,
+        private val paymentRepository: PaymentRepository,
+        private val paymentEventRepository: PaymentEventRepository,
+        private val adapter: PaymentPersistenceAdapter,
+        private val outboxPublisher: PaymentOutboxEventPublisher,
+        private val objectMapper: ObjectMapper,
+        private val metrics: PaymentMetrics,
+        private val eventPublisher: ApplicationEventPublisher,
+    ) : PaymentService {
+        override fun initiate(command: InitiatePaymentCommand): Payment {
+            val keyHash = Sha256.hex(command.idempotencyKey)
+            var attempt = 0
+            while (true) {
+                try {
+                    return idempotencyStore.reserveOrRun(keyHash) { createPayment(command) }
+                } catch (race: PaymentIdempotencyRaceException) {
+                    attempt++
+                    if (attempt >= MAX_ATTEMPTS) throw PaymentConcurrencyException(race)
+                }
             }
         }
-    }
 
-    @Transactional(readOnly = true)
-    override fun list(
-        page: Int,
-        size: Int,
-    ): PaymentPage {
-        val pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")))
-        val result = paymentRepository.findAll(pageable)
-        return PaymentPage(
-            items = result.content.map(adapter::toDomain),
-            page = page,
-            size = size,
-            totalElements = result.totalElements,
-            totalPages = result.totalPages,
-        )
-    }
-
-    @Transactional(readOnly = true)
-    override fun get(id: PaymentId): Payment =
-        adapter.toDomain(paymentRepository.findById(id.value).orElseThrow { PaymentNotFoundException(id) })
-
-    @Transactional
-    override fun cancel(id: PaymentId): Payment = transition(id, PaymentStatus.CANCELLED, PaymentEvents.PaymentCancelled)
-
-    @Transactional
-    override fun screen(id: PaymentId): Payment {
-        val entity = paymentRepository.findById(id.value).orElseThrow { PaymentNotFoundException(id) }
-        val payment = adapter.toDomain(entity)
-        payment.transitionTo(PaymentStatus.SCREENING)
-        entity.status = payment.status
-        paymentRepository.saveAndFlush(entity)
-        metrics.record(PaymentStatus.SCREENING)
-        return payment
-    }
-
-    @Transactional
-    override fun markSubmitted(
-        id: PaymentId,
-        providerReference: String,
-    ): Payment {
-        val entity = paymentRepository.findById(id.value).orElseThrow { PaymentNotFoundException(id) }
-        val payment = adapter.toDomain(entity)
-        payment.transitionTo(PaymentStatus.SUBMITTED)
-        entity.status = payment.status
-        entity.providerReference = providerReference
-        paymentRepository.saveAndFlush(entity)
-        recordEvent(payment, PaymentEvents.PaymentScreened)
-        metrics.record(PaymentStatus.SUBMITTED)
-        return payment
-    }
-
-    @Transactional
-    override fun markFailed(
-        id: PaymentId,
-        reason: String,
-    ): Payment = transition(id, PaymentStatus.FAILED, PaymentEvents.PaymentFailed, reason)
-
-    @Transactional
-    override fun markSettled(id: PaymentId): Payment = transition(id, PaymentStatus.SETTLED, PaymentEvents.PaymentSettled)
-
-    private fun transition(
-        id: PaymentId,
-        target: PaymentStatus,
-        type: EventType,
-        detail: String? = null,
-    ): Payment {
-        val entity = paymentRepository.findById(id.value).orElseThrow { PaymentNotFoundException(id) }
-        val payment = adapter.toDomain(entity)
-        payment.transitionTo(target)
-        entity.status = payment.status
-        paymentRepository.saveAndFlush(entity)
-        recordEvent(payment, type, detail)
-        metrics.record(target)
-        return payment
-    }
-
-    private fun createPayment(command: InitiatePaymentCommand): Payment {
-        val payment = Payment(PaymentId.generate(), command.amount, command.reference)
-        paymentRepository.saveAndFlush(adapter.toNewEntity(payment, Instant.now()))
-        recordEvent(payment, PaymentEvents.PaymentInitiated)
-        metrics.record(PaymentStatus.INITIATED)
-        return payment
-    }
-
-    private fun recordEvent(
-        payment: Payment,
-        type: EventType,
-        detail: String? = null,
-    ) {
-        val now = Instant.now()
-        val envelope =
-            EventEnvelope.of(
-                source = SOURCE,
-                type = type,
-                data = PaymentEventData.from(payment, detail),
-                subject = payment.id.toString(),
+        @Transactional(readOnly = true)
+        override fun list(
+            page: Int,
+            size: Int,
+        ): PaymentPage {
+            val pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")))
+            val result = paymentRepository.findAll(pageable)
+            return PaymentPage(
+                items = result.content.map(adapter::toDomain),
+                page = page,
+                size = size,
+                totalElements = result.totalElements,
+                totalPages = result.totalPages,
             )
-        paymentEventRepository.saveAndFlush(
-            PaymentEventEntity(UUID.randomUUID(), payment.id.value, type.fullType, objectMapper.writeValueAsString(envelope), now),
-        )
-        outboxPublisher.publish(envelope, AGGREGATE_TYPE, payment.id.toString(), type.fullType, now)
-    }
+        }
 
-    private companion object {
-        const val MAX_ATTEMPTS = 3
-        const val SOURCE = "payments"
-        const val AGGREGATE_TYPE = "Payment"
+        @Transactional(readOnly = true)
+        override fun get(id: PaymentId): Payment =
+            adapter.toDomain(paymentRepository.findById(id.value).orElseThrow { PaymentNotFoundException(id) })
+
+        @Transactional
+        override fun cancel(id: PaymentId): Payment = transition(id, PaymentStatus.CANCELLED, PaymentEvents.PaymentCancelled)
+
+        @Transactional
+        override fun screen(id: PaymentId): Payment {
+            val entity = paymentRepository.findById(id.value).orElseThrow { PaymentNotFoundException(id) }
+            val payment = adapter.toDomain(entity)
+            payment.transitionTo(PaymentStatus.SCREENING)
+            entity.status = payment.status
+            paymentRepository.saveAndFlush(entity)
+            metrics.record(PaymentStatus.SCREENING)
+            return payment
+        }
+
+        @Transactional
+        override fun markSubmitted(
+            id: PaymentId,
+            providerReference: String,
+        ): Payment {
+            val entity = paymentRepository.findById(id.value).orElseThrow { PaymentNotFoundException(id) }
+            val payment = adapter.toDomain(entity)
+            payment.transitionTo(PaymentStatus.SUBMITTED)
+            entity.status = payment.status
+            entity.providerReference = providerReference
+            paymentRepository.saveAndFlush(entity)
+            recordEvent(payment, PaymentEvents.PaymentScreened)
+            metrics.record(PaymentStatus.SUBMITTED)
+            return payment
+        }
+
+        @Transactional
+        override fun markFailed(
+            id: PaymentId,
+            reason: String,
+        ): Payment = transition(id, PaymentStatus.FAILED, PaymentEvents.PaymentFailed, reason)
+
+        @Transactional
+        override fun markSettled(id: PaymentId): Payment = transition(id, PaymentStatus.SETTLED, PaymentEvents.PaymentSettled)
+
+        private fun transition(
+            id: PaymentId,
+            target: PaymentStatus,
+            type: EventType,
+            detail: String? = null,
+        ): Payment {
+            val entity = paymentRepository.findById(id.value).orElseThrow { PaymentNotFoundException(id) }
+            val payment = adapter.toDomain(entity)
+            payment.transitionTo(target)
+            entity.status = payment.status
+            paymentRepository.saveAndFlush(entity)
+            recordEvent(payment, type, detail)
+            metrics.record(target)
+            return payment
+        }
+
+        private fun createPayment(command: InitiatePaymentCommand): Payment {
+            val payment = Payment(PaymentId.generate(), command.amount, command.reference)
+            paymentRepository.saveAndFlush(adapter.toNewEntity(payment, Instant.now()))
+            recordEvent(payment, PaymentEvents.PaymentInitiated)
+            metrics.record(PaymentStatus.INITIATED)
+            // Must stay inside this transaction: an AFTER_COMMIT listener drives orchestration only if the tx commits.
+            eventPublisher.publishEvent(PaymentInitiatedEvent(payment.id))
+            return payment
+        }
+
+        private fun recordEvent(
+            payment: Payment,
+            type: EventType,
+            detail: String? = null,
+        ) {
+            val now = Instant.now()
+            val envelope =
+                EventEnvelope.of(
+                    source = SOURCE,
+                    type = type,
+                    data = PaymentEventData.from(payment, detail),
+                    subject = payment.id.toString(),
+                )
+            paymentEventRepository.saveAndFlush(
+                PaymentEventEntity(UUID.randomUUID(), payment.id.value, type.fullType, objectMapper.writeValueAsString(envelope), now),
+            )
+            outboxPublisher.publish(envelope, AGGREGATE_TYPE, payment.id.toString(), type.fullType, now)
+        }
+
+        private companion object {
+            const val MAX_ATTEMPTS = 3
+            const val SOURCE = "payments"
+            const val AGGREGATE_TYPE = "Payment"
+        }
     }
-}
