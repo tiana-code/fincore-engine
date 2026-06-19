@@ -1,0 +1,19 @@
+meta {
+  name: Get KYC session
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{complianceUrl}}/v1/kyc/sessions/{{kycSessionId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: compliance:read. Fill kycSessionId from a previous initiate response.
+}

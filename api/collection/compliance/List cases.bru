@@ -1,0 +1,23 @@
+meta {
+  name: List cases
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{complianceUrl}}/v1/compliance/cases?status=OPEN
+  body: none
+  auth: none
+}
+
+params:query {
+  status: OPEN
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: compliance:read. status is required and must be one of OPEN, CLAIMED, ESCALATED, RESOLVED.
+}

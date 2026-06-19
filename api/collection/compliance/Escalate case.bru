@@ -1,0 +1,19 @@
+meta {
+  name: Escalate case
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{complianceUrl}}/v1/compliance/cases/{{caseId}}/escalate
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: compliance:write. Marks the case ESCALATED (from CLAIMED), or 409 if illegal.
+}
