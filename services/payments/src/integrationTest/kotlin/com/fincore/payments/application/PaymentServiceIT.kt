@@ -17,6 +17,8 @@ import com.fincore.payments.infrastructure.persistence.PaymentPersistenceAdapter
 import com.fincore.payments.infrastructure.persistence.PaymentRepository
 import com.fincore.test.containers.PostgresContainerExtension
 import io.kotest.matchers.shouldBe
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -38,6 +40,7 @@ import java.math.BigDecimal
 @ExtendWith(PostgresContainerExtension::class)
 @Import(
     PaymentServiceImpl::class,
+    PaymentMetrics::class,
     PaymentIdempotencyStore::class,
     PaymentPersistenceAdapter::class,
     PaymentOutboxEventPublisherImpl::class,
@@ -96,6 +99,8 @@ class PaymentServiceIT(
     class ObjectMapperConfig {
         @Bean
         fun objectMapper(): ObjectMapper = ObjectMapper().findAndRegisterModules()
+
+        @Bean fun meterRegistry(): MeterRegistry = SimpleMeterRegistry()
     }
 
     companion object {

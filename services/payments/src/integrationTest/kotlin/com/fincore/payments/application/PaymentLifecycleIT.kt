@@ -34,6 +34,8 @@ import com.fincore.test.containers.PostgresContainerExtension
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.shouldBe
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -58,6 +60,7 @@ import javax.crypto.spec.SecretKeySpec
 @ExtendWith(PostgresContainerExtension::class)
 @Import(
     PaymentServiceImpl::class,
+    PaymentMetrics::class,
     PaymentIdempotencyStore::class,
     PaymentPersistenceAdapter::class,
     PaymentOutboxEventPublisherImpl::class,
@@ -243,6 +246,8 @@ class PaymentLifecycleIT(
         fun retryProperties(): PaymentRetryProperties = PaymentRetryProperties(stuckAfter = Duration.ZERO, maxAge = Duration.ofHours(1))
 
         @Bean fun bankProvider(): BankProvider = SandboxBankProvider()
+
+        @Bean fun meterRegistry(): MeterRegistry = SimpleMeterRegistry()
     }
 
     companion object {
