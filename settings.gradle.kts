@@ -30,4 +30,5 @@ include(
     ":services:ledger",
     ":services:decision",
     ":services:payments",
+    ":services:compliance",
 )
