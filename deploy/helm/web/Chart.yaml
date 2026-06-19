@@ -1,0 +1,11 @@
+apiVersion: v2
+name: web
+description: FinCore sandbox dashboard, a static React SPA served by nginx
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/tiana-code/fincore-engine
+sources:
+  - https://github.com/tiana-code/fincore-engine
+maintainers:
+  - name: FinCore Engine Authors

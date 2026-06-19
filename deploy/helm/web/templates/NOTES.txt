@@ -1,0 +1,11 @@
+The sandbox dashboard has been deployed as release {{ .Release.Name }}.
+
+Service (ClusterIP) reachable in-cluster at:
+  {{ include "web.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+Open it locally with port-forward:
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "web.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  open http://localhost:{{ .Values.service.port }}/
+
+The SPA reaches the backend via the API base URL baked at image build time; point it at the
+ledger/payments/compliance/decision services for your environment.

@@ -27,7 +27,7 @@ jobs:
 
     strategy:
       matrix:
-        chart: [ledger, payments]
+        chart: [ledger, payments, web]
 
     env:
       KUBECONFORM_VERSION: v0.6.7
@@ -57,6 +57,7 @@ jobs:
             | kubeconform -strict -summary -kubernetes-version "$KUBERNETES_VERSION"
 
       - name: Validate the ServiceMonitor renders (operator CRD skipped)
+        if: matrix.chart != 'web'
         run: |
           rendered=$(helm template ${{ matrix.chart }} deploy/helm/${{ matrix.chart }} \
             --set image.tag=test --set serviceMonitor.enabled=true)
