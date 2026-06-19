@@ -18,3 +18,11 @@ export async function apiFetch<T>(path: string): Promise<T> {
     if (!response.ok) throw new ApiError(response.status)
     return (await response.json()) as T
 }
+
+export async function apiPost<T>(path: string): Promise<T> {
+    const headers: Record<string, string> = { Accept: 'application/json' }
+    if (DEV_BEARER) headers.Authorization = `Bearer ${DEV_BEARER}`
+    const response = await fetch(`${BASE_URL}${path}`, { method: 'POST', headers })
+    if (!response.ok) throw new ApiError(response.status)
+    return (await response.json()) as T
+}
