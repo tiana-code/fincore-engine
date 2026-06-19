@@ -1,0 +1,26 @@
+meta {
+  name: Create rule
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{decisionUrl}}/v1/decision/rules
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "ruleKey": "demo.approve"
+  }
+}
+
+docs {
+  Scope: decision:write. Creates the rule shell; publish a version next.
+}

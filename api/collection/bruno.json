@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "FinCore Engine",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

@@ -1,0 +1,27 @@
+meta {
+  name: Reverse transaction
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{ledgerUrl}}/v1/transactions/{{transactionId}}/reverse
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Idempotency-Key: {{idempotencyKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "reason": "demo reversal"
+  }
+}
+
+docs {
+  Scope: ledger:write. Requires an Idempotency-Key. Marks the original REVERSED and posts a compensating transaction.
+}

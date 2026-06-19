@@ -1,0 +1,26 @@
+meta {
+  name: Evaluate rule
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{decisionUrl}}/v1/decision/rules/{{ruleKey}}/evaluate
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "amount": 100
+  }
+}
+
+docs {
+  Scope: decision:write. The body is the attributes map evaluated against the rule's active version.
+}

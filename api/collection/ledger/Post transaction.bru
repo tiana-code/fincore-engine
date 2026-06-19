@@ -1,0 +1,41 @@
+meta {
+  name: Post transaction
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{ledgerUrl}}/v1/transactions
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Idempotency-Key: {{idempotencyKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "reference": "demo-tx-1",
+    "description": "demo balanced posting",
+    "currency": "USD",
+    "entries": [
+      {
+        "accountId": "{{accountId}}",
+        "direction": "DEBIT",
+        "amount": "100.00"
+      },
+      {
+        "accountId": "{{secondAccountId}}",
+        "direction": "CREDIT",
+        "amount": "100.00"
+      }
+    ]
+  }
+}
+
+docs {
+  Scope: ledger:write. Requires an Idempotency-Key. Entries must balance to zero per currency (sum of DEBIT == sum of CREDIT) and share one currency. Set accountId and secondAccountId to two existing accounts.
+}

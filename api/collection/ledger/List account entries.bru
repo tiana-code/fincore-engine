@@ -1,0 +1,23 @@
+meta {
+  name: List account entries
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{ledgerUrl}}/v1/accounts/{{accountId}}/entries?limit=20
+  body: none
+  auth: none
+}
+
+params:query {
+  limit: 20
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: ledger:read. Cursor-paginated.
+}

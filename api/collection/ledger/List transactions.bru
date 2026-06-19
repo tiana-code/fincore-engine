@@ -1,0 +1,23 @@
+meta {
+  name: List transactions
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{ledgerUrl}}/v1/transactions?limit=20
+  body: none
+  auth: none
+}
+
+params:query {
+  limit: 20
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: ledger:read. Cursor-paginated.
+}

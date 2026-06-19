@@ -1,0 +1,19 @@
+meta {
+  name: Get payment
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{paymentsUrl}}/v1/payments/{{paymentId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: payments:read.
+}

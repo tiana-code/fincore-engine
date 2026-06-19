@@ -1,0 +1,19 @@
+meta {
+  name: Get account
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{ledgerUrl}}/v1/accounts/{{accountId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+docs {
+  Scope: ledger:read.
+}
