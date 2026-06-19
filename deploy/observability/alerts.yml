@@ -1,0 +1,64 @@
+# Prometheus alerting rules for the local observability profile.
+# Availability SLO 99% (1% error budget); multi-window multi-burn-rate on the 5xx ratio.
+groups:
+  - name: fincore-availability
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: P0
+        annotations:
+          summary: "Target {{ $labels.job }} is down"
+          description: "Prometheus cannot scrape {{ $labels.job }} ({{ $labels.instance }}) for 2m."
+
+      - alert: ErrorBudgetBurnFast
+        expr: |
+          sum(rate(http_server_requests_seconds_count{outcome="SERVER_ERROR"}[5m])) by (job)
+            / sum(rate(http_server_requests_seconds_count[5m])) by (job) > 0.144
+          and
+          sum(rate(http_server_requests_seconds_count{outcome="SERVER_ERROR"}[1h])) by (job)
+            / sum(rate(http_server_requests_seconds_count[1h])) by (job) > 0.144
+        for: 2m
+        labels:
+          severity: P1
+        annotations:
+          summary: "Fast error-budget burn on {{ $labels.job }}"
+          description: "{{ $labels.job }} is burning the 99% availability budget at >14.4x (5m and 1h windows)."
+
+      - alert: ErrorBudgetBurnSlow
+        expr: |
+          sum(rate(http_server_requests_seconds_count{outcome="SERVER_ERROR"}[30m])) by (job)
+            / sum(rate(http_server_requests_seconds_count[30m])) by (job) > 0.06
+          and
+          sum(rate(http_server_requests_seconds_count{outcome="SERVER_ERROR"}[6h])) by (job)
+            / sum(rate(http_server_requests_seconds_count[6h])) by (job) > 0.06
+        for: 15m
+        labels:
+          severity: P2
+        annotations:
+          summary: "Slow error-budget burn on {{ $labels.job }}"
+          description: "{{ $labels.job }} is burning the 99% availability budget at >6x (30m and 6h windows)."
+
+  - name: fincore-latency
+    rules:
+      - alert: HighRequestLatencyP95
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le, job)) > 0.5
+        for: 10m
+        labels:
+          severity: P2
+        annotations:
+          summary: "High p95 request latency on {{ $labels.job }}"
+          description: "p95 request latency on {{ $labels.job }} is {{ $value | humanizeDuration }} (> 0.5s) over 10m."
+
+  - name: fincore-health
+    rules:
+      - alert: TargetFlapping
+        expr: changes(up[15m]) >= 4
+        for: 0m
+        labels:
+          severity: P3
+        annotations:
+          summary: "Target {{ $labels.job }} is flapping"
+          description: "{{ $labels.job }} ({{ $labels.instance }}) changed up/down state >= 4 times in 15m."

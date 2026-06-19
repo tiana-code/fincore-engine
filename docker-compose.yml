@@ -79,6 +79,7 @@ services:
     profiles: [observability]
     volumes:
       - ./deploy/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/observability/alerts.yml:/etc/prometheus/alerts.yml:ro
     ports:
       - "9090:9090"
 
