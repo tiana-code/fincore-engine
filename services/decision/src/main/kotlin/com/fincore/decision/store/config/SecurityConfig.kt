@@ -51,6 +51,7 @@ class SecurityConfig {
                 "/swagger-ui.html",
                 "/actuator/health",
                 "/actuator/health/**",
+                "/actuator/prometheus",
             )
     }
 }
