@@ -19,6 +19,7 @@ import java.util.UUID
 
 internal const val IMAGE = "postgres:17-alpine"
 internal const val CHANGELOG = "db/changelog/db.changelog-master.yaml"
+internal const val PRODUCTION_CONTEXT = "production"
 internal const val ACTOR = "test"
 internal const val CCY = "USD"
 internal const val ASSET = "ASSET"
@@ -68,7 +69,7 @@ internal class LedgerSchemaTestDb(
         val connection = DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password)
         val database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(JdbcConnection(connection))
         Liquibase(CHANGELOG, ClassLoaderResourceAccessor(), database).use { liquibase ->
-            liquibase.update(Contexts(), LabelExpression())
+            liquibase.update(Contexts(PRODUCTION_CONTEXT), LabelExpression())
         }
     }
 

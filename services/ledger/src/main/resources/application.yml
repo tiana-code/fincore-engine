@@ -11,6 +11,7 @@ spring:
       ddl-auto: none
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
+    contexts: ${SPRING_LIQUIBASE_CONTEXTS:production}
   security:
     oauth2:
       resourceserver:

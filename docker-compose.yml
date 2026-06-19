@@ -26,6 +26,7 @@ services:
       SPRING_DATASOURCE_USERNAME: ledger
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-ledger}
       KEYCLOAK_ISSUER_URI: http://localhost/realms/fincore
+      SPRING_LIQUIBASE_CONTEXTS: production,demo
 
   payments:
     build:
