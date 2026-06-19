@@ -1,0 +1,43 @@
+name: Prometheus Rules
+
+on:
+  pull_request:
+    paths:
+      - "deploy/observability/**"
+      - ".github/workflows/prometheus-rules.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "deploy/observability/**"
+      - ".github/workflows/prometheus-rules.yml"
+
+concurrency:
+  group: promtool-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: promtool check
+    runs-on: ubuntu-latest
+
+    env:
+      PROMETHEUS_IMAGE: prom/prometheus:v2.55.1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: promtool check config
+        run: |
+          docker run --rm --entrypoint promtool \
+            -v "$PWD/deploy/observability:/cfg" "$PROMETHEUS_IMAGE" \
+            check config /cfg/prometheus.yml
+
+      - name: promtool check rules
+        run: |
+          docker run --rm --entrypoint promtool \
+            -v "$PWD/deploy/observability:/cfg" "$PROMETHEUS_IMAGE" \
+            check rules /cfg/alerts.yml
