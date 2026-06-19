@@ -6,6 +6,7 @@ package com.fincore.payments.config
 import com.fincore.payments.application.retry.PaymentRetryProperties
 import com.fincore.payments.application.screening.PaymentScreeningProperties
 import com.fincore.payments.application.webhook.PaymentWebhookProperties
+import com.fincore.payments.infrastructure.bank.SandboxBankProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration
 
@@ -15,5 +16,6 @@ import org.springframework.context.annotation.Configuration
     PaymentWebhookProperties::class,
     PaymentRetryProperties::class,
     PaymentDispatcherProperties::class,
+    SandboxBankProperties::class,
 )
 class PaymentsConfig
