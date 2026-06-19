@@ -14,18 +14,44 @@ services:
       retries: 10
       start_period: 5s
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6.1
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HOSTNAME: http://keycloak:8080
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "8085:8080"
+    volumes:
+      - ./deploy/keycloak:/opt/keycloak/data/import:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/localhost/9000; echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; cat <&3 | grep -q 'HTTP/1.1 200'",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
   ledger:
     build: .
     depends_on:
       postgres:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     ports:
       - "8080:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ledger
       SPRING_DATASOURCE_USERNAME: ledger
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-ledger}
-      KEYCLOAK_ISSUER_URI: http://localhost/realms/fincore
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/fincore
       SPRING_LIQUIBASE_CONTEXTS: production,demo
       OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
 
@@ -37,13 +63,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     ports:
       - "8081:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payments
       SPRING_DATASOURCE_USERNAME: ledger
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-ledger}
-      KEYCLOAK_ISSUER_URI: http://localhost/realms/fincore
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/fincore
       FINCORE_PAYMENTS_BANK_SANDBOX_ENABLED: "true"
       OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
 

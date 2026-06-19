@@ -149,12 +149,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Bring up stack
-        run: docker compose up -d --build --wait --wait-timeout 90
+        run: docker compose up -d --build --wait --wait-timeout 180
 
       - name: Smoke (readiness < 30s, public surface served)
         run: |
           bash scripts/demo.sh http://localhost:8080
           bash scripts/demo.sh http://localhost:8081
+
+      - name: Auth chain proof (token -> protected endpoint -> 200)
+        run: bash scripts/demo-auth.sh
 
       - name: Dump container logs on failure
         if: failure()
