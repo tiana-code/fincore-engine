@@ -1,0 +1,34 @@
+name: SDK TypeScript CI
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["sdk/typescript/**", ".github/workflows/sdk-ts-ci.yml"]
+  pull_request:
+    paths: ["sdk/typescript/**", ".github/workflows/sdk-ts-ci.yml"]
+
+concurrency:
+  group: sdk-ts-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  sdk-ts:
+    name: TypeScript SDK build & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk/typescript
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: sdk/typescript/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build

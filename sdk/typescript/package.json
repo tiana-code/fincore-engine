@@ -1,0 +1,23 @@
+{
+  "name": "@fincore/sdk-typescript",
+  "version": "0.1.0",
+  "description": "Typed fetch client over the FinCore Engine REST API",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "license": "BUSL-1.1",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "~5.6.3",
+    "vitest": "^3.0.5"
+  }
+}
