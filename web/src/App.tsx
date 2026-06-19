@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/ThemeProvider'
 import { AccountDetail } from '@/routes/AccountDetail'
 import { Accounts } from '@/routes/Accounts'
 import { Cases } from '@/routes/Cases'
+import { Decisions } from '@/routes/Decisions'
 import { Overview } from '@/routes/Overview'
 import { TransactionDetail } from '@/routes/TransactionDetail'
 import { Transactions } from '@/routes/Transactions'
@@ -25,6 +26,7 @@ export function App() {
                         <Route path="/transactions" element={<Transactions />} />
                         <Route path="/transactions/:id" element={<TransactionDetail />} />
                         <Route path="/compliance/cases" element={<Cases />} />
+                        <Route path="/decisions" element={<Decisions />} />
                     </Routes>
                 </BrowserRouter>
             </ThemeProvider>

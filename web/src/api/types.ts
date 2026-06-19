@@ -86,3 +86,12 @@ export interface CaseResponse {
     reference: string
     status: CaseStatus
 }
+
+export interface DecisionLogResponse {
+    id: string
+    evaluatedAt: string
+    ruleVersionId: string
+    inputHash: string
+    matched: boolean
+    outcomeLabel: string | null
+}

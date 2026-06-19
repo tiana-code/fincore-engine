@@ -15,7 +15,7 @@ const NAV: NavItem[] = [
     { name: 'Accounts', icon: 'wallet', path: '/accounts' },
     { name: 'Transactions', icon: 'arrows', path: '/transactions' },
     { name: 'Payments', icon: 'send' },
-    { name: 'Decisions', icon: 'scale' },
+    { name: 'Decisions', icon: 'scale', path: '/decisions' },
     { name: 'Compliance', icon: 'shield', path: '/compliance/cases' },
     { name: 'Audit', icon: 'book' },
 ]
