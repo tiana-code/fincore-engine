@@ -55,3 +55,10 @@ jobs:
         run: |
           helm template ${{ matrix.chart }} deploy/helm/${{ matrix.chart }} --set image.tag=test \
             | kubeconform -strict -summary -kubernetes-version "$KUBERNETES_VERSION"
+
+      - name: Validate the ServiceMonitor renders (operator CRD skipped)
+        run: |
+          rendered=$(helm template ${{ matrix.chart }} deploy/helm/${{ matrix.chart }} \
+            --set image.tag=test --set serviceMonitor.enabled=true)
+          echo "$rendered" | grep -q 'kind: ServiceMonitor'
+          echo "$rendered" | kubeconform -strict -summary -skip ServiceMonitor -kubernetes-version "$KUBERNETES_VERSION"

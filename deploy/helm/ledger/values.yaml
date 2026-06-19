@@ -19,6 +19,12 @@ service:
   type: ClusterIP
   port: 8080
 
+# Prometheus Operator ServiceMonitor. Off by default; enable on a cluster running the operator.
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  path: /actuator/prometheus
+
 resources:
   requests:
     cpu: 250m
