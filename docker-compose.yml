@@ -73,6 +73,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-ledger}
       KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/fincore
       FINCORE_PAYMENTS_BANK_SANDBOX_ENABLED: "true"
+      FINCORE_PAYMENTS_WEBHOOK_HMACSECRET: ${FINCORE_PAYMENTS_WEBHOOK_HMACSECRET:-sandbox-webhook-secret}
       OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
 
   web:
