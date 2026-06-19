@@ -6,6 +6,7 @@ import type { CaseStatus } from '@/api/types'
 import { Shell } from '@/components/Shell'
 import { StateMessage } from '@/components/StateMessage'
 import { CasesTable } from '@/features/cases/CasesTable'
+import { useCaseAction } from '@/features/cases/useCaseAction'
 import { useCases } from '@/features/cases/useCases'
 
 const STATUSES: CaseStatus[] = ['OPEN', 'CLAIMED', 'ESCALATED', 'RESOLVED']
@@ -13,6 +14,7 @@ const STATUSES: CaseStatus[] = ['OPEN', 'CLAIMED', 'ESCALATED', 'RESOLVED']
 export function Cases() {
     const [status, setStatus] = useState<CaseStatus>('OPEN')
     const { data, isPending, isError, refetch } = useCases(status)
+    const action = useCaseAction()
 
     return (
         <Shell activeNav="Compliance">
@@ -34,7 +36,10 @@ export function Cases() {
                             role="tab"
                             aria-selected={option === status}
                             className={`btn${option === status ? ' btn-active' : ''}`}
-                            onClick={() => setStatus(option)}
+                            onClick={() => {
+                                action.reset()
+                                setStatus(option)
+                            }}
                         >
                             {option}
                         </button>
@@ -63,9 +68,21 @@ export function Cases() {
                         ) : data.length === 0 ? (
                             <StateMessage icon="inbox" text="No cases in this status." />
                         ) : (
-                            <CasesTable cases={data} />
+                            <CasesTable
+                                cases={data}
+                                pending={action.isPending}
+                                onAction={(id, act) => action.mutate({ id, action: act })}
+                            />
                         )}
                     </div>
+                    {action.isError && (
+                        <div
+                            role="alert"
+                            style={{ padding: '8px 16px', fontSize: 12, color: 'var(--text-err)' }}
+                        >
+                            Could not apply the action. Try again.
+                        </div>
+                    )}
                 </div>
             </div>
         </Shell>

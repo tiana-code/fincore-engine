@@ -96,4 +96,65 @@ describe('Cases', () => {
             'page',
         )
     })
+
+    it('claims an open case via POST and refetches the list', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(ok(SAMPLE))
+        renderCases()
+        await screen.findByText('case-ref-1')
+
+        fireEvent.click(screen.getAllByRole('button', { name: 'claim' })[0])
+
+        await waitFor(() => {
+            const claimCall = fetchMock.mock.calls.find((c) =>
+                String(c[0]).includes('/v1/compliance/cases/case_0001/claim'),
+            )
+            expect(claimCall).toBeTruthy()
+            expect(claimCall?.[1]?.method).toBe('POST')
+        })
+        await waitFor(() => {
+            const listGets = fetchMock.mock.calls.filter(
+                (c) =>
+                    String(c[0]).includes('/v1/compliance/cases?status=') &&
+                    !String(c[0]).includes('/claim'),
+            )
+            expect(listGets.length).toBeGreaterThan(1)
+        })
+    })
+
+    it('clears a prior action error when switching status tabs', async () => {
+        vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+            if (String(input).includes('/claim')) return Promise.reject(new Error('boom'))
+            return Promise.resolve(ok(SAMPLE))
+        })
+        renderCases()
+        await screen.findByText('case-ref-1')
+        fireEvent.click(screen.getAllByRole('button', { name: 'claim' })[0])
+        await screen.findByRole('alert')
+
+        fireEvent.click(screen.getByRole('tab', { name: 'RESOLVED' }))
+        await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+    })
+
+    it('shows no action buttons on a resolved case', async () => {
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+            ok([{ id: 'case_0009', reference: 'case-ref-9', status: 'RESOLVED' }]),
+        )
+        renderCases()
+        await screen.findByText('case-ref-9')
+        expect(screen.queryByRole('button', { name: 'claim' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'resolve' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'escalate' })).not.toBeInTheDocument()
+    })
+
+    it('surfaces an error when an action fails', async () => {
+        vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+            if (String(input).includes('/claim')) return Promise.reject(new Error('boom'))
+            return Promise.resolve(ok(SAMPLE))
+        })
+        renderCases()
+        await screen.findByText('case-ref-1')
+
+        fireEvent.click(screen.getAllByRole('button', { name: 'claim' })[0])
+        expect(await screen.findByRole('alert')).toHaveTextContent('Could not apply the action')
+    })
 })
