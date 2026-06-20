@@ -39,7 +39,7 @@ class DecisionRuleController(
     }
 
     // No Idempotency-Key here by design: versions are append-only and monotonic, so a retried publish creates
-    // a new, immutable version rather than corrupting state. The full idempotency subsystem is a later slice.
+    // a new, immutable version rather than corrupting state.
     @Operation(summary = "Publish a rule version", description = "Validates the DSL document and stores it as the new active version.")
     @PostMapping("/{ruleKey}/versions", consumes = [MediaType.APPLICATION_JSON_VALUE])
     fun publishVersion(
