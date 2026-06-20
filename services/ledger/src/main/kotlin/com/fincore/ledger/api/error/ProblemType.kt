@@ -6,19 +6,8 @@ package com.fincore.ledger.api.error
 import org.springframework.http.HttpStatus
 import java.net.URI
 
-/**
- * Catalog of every error condition the ledger API can surface as an RFC 7807 problem.
- *
- * Each constant is a published, stable contract: its [type] URI and [code] are part of the public API and
- * are guarded by integration tests. The `GlobalExceptionHandler` and `IdempotencyFilter` resolve the
- * status, type, title, and code from here instead of deriving strings at runtime, so the contract cannot
- * drift when a human-readable title is edited.
- *
- * @property slug URL-safe identifier; the [type] URI is [BASE_URI] + slug.
- * @property status HTTP status returned for this condition.
- * @property code machine-readable, SCREAMING_SNAKE code consumers branch on without parsing messages.
- * @property title short human-readable summary.
- */
+// type URI and code are stable public API: GlobalExceptionHandler and IdempotencyFilter resolve them
+// from here so the contract cannot drift when a human-readable title changes.
 enum class ProblemType(
     val slug: String,
     val status: HttpStatus,

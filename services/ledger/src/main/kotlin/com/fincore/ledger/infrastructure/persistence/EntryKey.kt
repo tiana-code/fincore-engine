@@ -9,7 +9,6 @@ import java.io.Serializable
 import java.time.Instant
 import java.util.UUID
 
-// Composite key mirrors the partitioned PK (id, created_at) on ledger.entries.
 @Embeddable
 data class EntryKey(
     @Column(name = "id", nullable = false, updatable = false)

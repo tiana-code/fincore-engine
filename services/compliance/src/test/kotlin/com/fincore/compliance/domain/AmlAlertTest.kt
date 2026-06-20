@@ -17,24 +17,24 @@ class AmlAlertTest {
 
     @Test
     fun `should resolve when transitioned from open`() {
-        val a = alert()
-        a.transitionTo(AmlAlertStatus.RESOLVED)
-        a.status shouldBe AmlAlertStatus.RESOLVED
-        a.isTerminal() shouldBe true
+        val alert = alert()
+        alert.transitionTo(AmlAlertStatus.RESOLVED)
+        alert.status shouldBe AmlAlertStatus.RESOLVED
+        alert.isTerminal() shouldBe true
     }
 
     @Test
     fun `should dismiss when transitioned from open`() {
-        val a = alert()
-        a.transitionTo(AmlAlertStatus.DISMISSED)
-        a.status shouldBe AmlAlertStatus.DISMISSED
+        val alert = alert()
+        alert.transitionTo(AmlAlertStatus.DISMISSED)
+        alert.status shouldBe AmlAlertStatus.DISMISSED
     }
 
     @Test
     fun `should reject reopening a resolved alert`() {
-        val a = alert()
-        a.transitionTo(AmlAlertStatus.RESOLVED)
-        shouldThrow<ComplianceDomainException> { a.transitionTo(AmlAlertStatus.OPEN) }
+        val alert = alert()
+        alert.transitionTo(AmlAlertStatus.RESOLVED)
+        shouldThrow<ComplianceDomainException> { alert.transitionTo(AmlAlertStatus.OPEN) }
     }
 
     @Test

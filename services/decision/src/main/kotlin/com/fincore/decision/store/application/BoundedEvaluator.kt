@@ -14,13 +14,8 @@ import org.springframework.stereotype.Component
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
-/**
- * Runs the pure evaluator under a hard time budget. A watchdog interrupts the calling thread after the
- * budget; the engine matches author patterns against an interruptible view of the input, so a catastrophic
- * backtrack unwinds promptly as a [RegexMatchInterruptedException] instead of hanging. This wraps ONLY the
- * evaluate call: the watchdog is cancelled and the interrupt flag cleared before returning, so a caller can
- * safely proceed (e.g. to persist an audit row) on a clean thread.
- */
+// Watchdog wraps only evaluate: interrupt flag is cleared before returning so the caller can persist an
+// audit row on a clean thread. ReDoS backtrack surfaces as RegexMatchInterruptedException, not a hang.
 @Component
 class BoundedEvaluator(
     private val ruleEvaluator: RuleEvaluator,

@@ -17,28 +17,28 @@ class ComplianceCaseTest {
 
     @Test
     fun `should resolve through claimed when transitioned legally`() {
-        val c = case()
-        c.transitionTo(CaseStatus.CLAIMED)
-        c.transitionTo(CaseStatus.RESOLVED)
-        c.status shouldBe CaseStatus.RESOLVED
-        c.isTerminal() shouldBe true
+        val case = case()
+        case.transitionTo(CaseStatus.CLAIMED)
+        case.transitionTo(CaseStatus.RESOLVED)
+        case.status shouldBe CaseStatus.RESOLVED
+        case.isTerminal() shouldBe true
     }
 
     @Test
     fun `should resolve through escalation when escalated then resolved`() {
-        val c = case()
-        c.transitionTo(CaseStatus.CLAIMED)
-        c.transitionTo(CaseStatus.ESCALATED)
-        c.transitionTo(CaseStatus.RESOLVED)
-        c.status shouldBe CaseStatus.RESOLVED
+        val case = case()
+        case.transitionTo(CaseStatus.CLAIMED)
+        case.transitionTo(CaseStatus.ESCALATED)
+        case.transitionTo(CaseStatus.RESOLVED)
+        case.status shouldBe CaseStatus.RESOLVED
     }
 
     @Test
     fun `should reject claiming a resolved case`() {
-        val c = case()
-        c.transitionTo(CaseStatus.CLAIMED)
-        c.transitionTo(CaseStatus.RESOLVED)
-        shouldThrow<ComplianceDomainException> { c.transitionTo(CaseStatus.CLAIMED) }
+        val case = case()
+        case.transitionTo(CaseStatus.CLAIMED)
+        case.transitionTo(CaseStatus.RESOLVED)
+        shouldThrow<ComplianceDomainException> { case.transitionTo(CaseStatus.CLAIMED) }
     }
 
     @Test

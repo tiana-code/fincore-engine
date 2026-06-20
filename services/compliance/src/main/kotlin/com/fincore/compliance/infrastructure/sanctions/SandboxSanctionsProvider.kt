@@ -9,13 +9,7 @@ import com.fincore.compliance.application.sanctions.SanctionsScreeningResult
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 
-/**
- * Deterministic in-tree sandbox sanctions provider, off by default. Encodes no real sanctions list; the outcome is a
- * pure function of documented case-insensitive markers. An "insufficient" marker in the opaque subject reference yields
- * InsufficientData; otherwise the provided attribute keys carrying the "match" marker are the matched dimensions, and a
- * potential hit is reported when at least the requested number of them match. The score is a fixed sandbox confidence,
- * not the m-of-n ratio.
- */
+// In-tree sandbox provider, off by default; a deterministic m-of-n match driven by markers in the request attributes.
 @Component
 @ConditionalOnProperty(
     prefix = "fincore.compliance.sanctions.sandbox",

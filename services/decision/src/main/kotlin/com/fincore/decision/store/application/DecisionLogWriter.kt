@@ -12,10 +12,6 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.UUID
 
-/**
- * Builds and persists the immutable decision_logs audit row for one completed evaluation. A non-matching
- * result has no outcome, so it stores null label and reason codes (the DB CHECK enforces that totality).
- */
 @Component
 class DecisionLogWriter(
     private val decisionLogRepository: DecisionLogRepository,
