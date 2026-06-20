@@ -60,7 +60,7 @@ docker compose up -d
 The web dashboard is served at `http://localhost:8082`, the ledger API at `:8080`, payments at `:8081`, and
 Keycloak at `:8085`.
 
-Full guide: [Getting Started](https://github.com/tiana-code/fincore-engine/wiki/Getting-Started)
+Full documentation: [Wiki](https://github.com/tiana-code/fincore-engine/wiki)
 
 ### Observability profile (optional)
 
@@ -82,8 +82,8 @@ shipping the services' JSON logs into it (a log shipper) is a follow-up - until 
 FinCore Engine ships with the tooling an adopter needs to integrate quickly:
 
 - **Client SDKs** - a [Kotlin SDK](libs/sdk-kotlin) (`com.fincore:sdk-kotlin`) and a [TypeScript SDK](sdk/typescript)
-  (`@fincore/sdk-typescript`) wrap the ledger REST API with typed models, preserving monetary amounts as strings to
-  avoid floating-point drift.
+  (`@fincore/sdk-typescript`) with typed clients for the ledger, payments, and compliance services. Ledger amounts are
+  represented as strings to avoid floating-point drift.
 - **`fincore` CLI** - the [`scripts/fincore`](scripts/fincore) helper scaffolds a sandbox `.env`, checks service
   health, and runs the smoke demo.
 - **Runnable examples** - [`examples/node-quickstart`](examples/node-quickstart) lists and reads accounts through the
