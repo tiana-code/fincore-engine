@@ -39,15 +39,24 @@ Requirements: Java 21+, Docker, Docker Compose.
 git clone https://github.com/tiana-code/fincore-engine.git
 cd fincore-engine
 
-# Start all infrastructure (PostgreSQL, Redpanda, Keycloak, Redis)
-docker compose -f deploy/docker-compose.yml up -d
+# Start the sandbox stack: PostgreSQL, Keycloak, and the ledger, payments, and web services
+docker compose up -d
 
-# Run the ledger service
-./gradlew :services:ledger:bootRun
-
-# Seed demo accounts and run the 5-minute demo
+# Run the ledger smoke demo (creates accounts, posts a balanced transaction)
 ./scripts/demo.sh
 ```
+
+Prefer a guided flow? The `scripts/fincore` helper wraps the common steps:
+
+```bash
+./scripts/fincore init        # scaffold a local .env with sandbox defaults
+docker compose up -d
+./scripts/fincore status      # check the health of the running services
+./scripts/fincore run-demo    # run the ledger smoke demo
+```
+
+The web dashboard is served at `http://localhost:8082`, the ledger API at `:8080`, payments at `:8081`, and
+Keycloak at `:8085`.
 
 Full guide: [Getting Started](https://github.com/tiana-code/fincore-engine/wiki/Getting-Started)
 
@@ -66,23 +75,48 @@ shipping the services' JSON logs into it (a log shipper) is a follow-up - until 
 
 ---
 
+## Developer experience
+
+FinCore Engine ships with the tooling an adopter needs to integrate quickly:
+
+- **Client SDKs** - a [Kotlin SDK](libs/sdk-kotlin) (`com.fincore:sdk-kotlin`) and a [TypeScript SDK](sdk/typescript)
+  (`@fincore/sdk-typescript`) wrap the ledger REST API with typed models, preserving monetary amounts as strings to
+  avoid floating-point drift.
+- **`fincore` CLI** - the [`scripts/fincore`](scripts/fincore) helper scaffolds a sandbox `.env`, checks service
+  health, and runs the smoke demo.
+- **Runnable examples** - [`examples/node-quickstart`](examples/node-quickstart) lists and reads accounts through the
+  TypeScript SDK, and [`examples/webhook-receiver`](examples/webhook-receiver) is a local harness that verifies
+  payment-webhook HMAC signatures exactly as the payments service does.
+- **API collection** - an importable [Bruno collection](api/collection) covering the ledger, payments, decision, and
+  compliance endpoints for exploring a running sandbox.
+
+---
+
 ## Repository layout
 
 ```
 fincore-engine/
-├── api/                    # OpenAPI 3.1 specifications (source of truth)
+├── api/                    # OpenAPI 3.1 specs + Bruno API collection
 ├── libs/
 │   ├── fincore-core/       # Money, IDs, shared value types
 │   ├── fincore-events/     # Event envelope, outbox abstractions
-│   └── fincore-test-support/  # Testcontainers helpers, test data builders
+│   ├── fincore-eventbus/   # Generic broker infra: dispatcher, retry, DLQ
+│   ├── fincore-observability/  # Shared tracing and metrics wiring
+│   ├── decision-engine/    # Standalone JSON DSL engine (embeddable library)
+│   ├── sdk-kotlin/         # Kotlin client SDK
+│   └── fincore-test-support/   # Testcontainers helpers, test data builders
 ├── services/
 │   ├── ledger/             # Double-entry ledger service (Spring Boot)
 │   ├── payments/           # Payment orchestration service
 │   ├── compliance/         # KYC/AML orchestration service
-│   └── decision/           # JSON DSL decision engine
-├── deploy/                 # Docker Compose, Helm charts, Grafana dashboards
-├── scripts/                # demo.sh, seed.sh, sync-wiki.sh
-├── wiki/                   # GitHub Wiki source (gitignored; push to .wiki.git)
+│   └── decision/           # Decision engine service
+├── sdk/
+│   └── typescript/         # TypeScript client SDK
+├── examples/               # Runnable adopter examples (node-quickstart, webhook-receiver)
+├── web/                    # React sandbox dashboard (Vite + TypeScript)
+├── deploy/                 # Helm charts, Keycloak realm, observability config
+├── scripts/                # demo.sh, demo-auth.sh, demo-payment.sh, fincore (CLI), initdb/
+├── docker-compose.yml      # Sandbox stack
 └── docs/                   # Plans, ADRs, private context (partially gitignored)
 ```
 
@@ -90,21 +124,26 @@ fincore-engine/
 
 ## Architecture
 
+Each service exposes its own REST API and is reached directly. There is no shared gateway: clients call the
+ledger, payments, compliance, and decision services on their own ports.
+
 ```mermaid
 graph LR
-    Client -->|REST / OpenAPI| Gateway[API Gateway]
-    Gateway --> Ledger[Ledger Service]
-    Gateway --> Payments[Payments Service]
-    Gateway --> Compliance[Compliance Service]
-    Gateway --> Decision[Decision Engine]
-    Ledger -->|Outbox| Redpanda[(Redpanda / Kafka)]
-    Payments -->|Outbox| Redpanda
-    Compliance -->|Outbox| Redpanda
+    Client -->|REST / OpenAPI| Ledger[Ledger Service]
+    Client --> Payments[Payments Service]
+    Client --> Compliance[Compliance Service]
+    Client --> Decision[Decision Service]
+    Ledger -->|Outbox| Broker[(Redpanda / Kafka)]
+    Payments -->|Outbox| Broker
+    Compliance -->|Outbox| Broker
     Ledger --> Postgres[(PostgreSQL 17)]
     Payments --> Postgres
     Compliance --> Postgres
     Decision --> Postgres
 ```
+
+The message broker (Redpanda or Kafka) is a production option for cross-service event delivery; the local sandbox
+stack runs the ledger, payments, and web services against PostgreSQL and Keycloak only.
 
 Full C4 diagram and service descriptions: [Architecture Overview](https://github.com/tiana-code/fincore-engine/wiki/Architecture-Overview)
 
