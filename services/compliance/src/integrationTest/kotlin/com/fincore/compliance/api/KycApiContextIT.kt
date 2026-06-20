@@ -39,8 +39,7 @@ class KycApiContextIT(
     class TestBeans {
         @Bean fun jwtDecoder(): JwtDecoder = mockk()
 
-        // No in-tree KycProvider yet (sandbox is #239); a fake satisfies the orchestrator's dependency so the
-        // full web context boots.
+        // A fake KycProvider satisfies the orchestrator's dependency so the full web context boots in isolation.
         @Bean fun kycProvider(): KycProvider =
             object : KycProvider {
                 override fun check(request: KycCheckRequest): KycCheckResult = KycCheckResult.Pending("ref-test")

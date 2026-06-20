@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service
  *
  * Concurrent process calls on the same session resolve via the entity's optimistic lock: the loser's
  * OptimisticLockingFailureException propagates. Pending and InsufficientData leave the session in SCREENING (there is
- * no PENDING status); a later re-screen advances it. The provider reference is not persisted in this slice.
+ * no PENDING status); a later re-screen advances it. The provider reference is not persisted.
  */
 @Service
 class KycOrchestrator(
