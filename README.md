@@ -25,7 +25,9 @@ Full context: [Vision](https://github.com/tiana-code/fincore-engine/wiki/Vision)
 
 - **Double-entry ledger** with invariant enforcement at application, service, and database layers - balances never drift.
 - **Idempotent payment orchestration** - safe to retry; deduplication via `Idempotency-Key` header and transactional outbox.
-- **KYC/AML orchestration framework** - plug-in interfaces for identity verification and compliance screening providers.
+- **KYC/AML orchestration framework** - the compliance service owns the workflow and delegates to external systems
+  through plug-in ports (`KycProvider`, `SanctionsProvider`, `AmlCopilot`), with deterministic sandbox providers in
+  tree. Real integrations are your adapters; see [PROVIDERS.md](PROVIDERS.md).
 - **JSON DSL Decision Engine** - deterministic, auditable rule evaluation with full explainability; no embedded scripting languages.
 - **OpenTelemetry-native observability** - distributed tracing, structured logging, and Micrometer metrics out of the box.
 
