@@ -64,3 +64,29 @@ export interface TransactionDetail {
     postedAt: string
     entries: Entry[]
 }
+
+export type PaymentStatus = 'INITIATED' | 'SCREENING' | 'SUBMITTED' | 'SETTLED' | 'FAILED' | 'CANCELLED'
+
+export interface Payment {
+    id: string
+    reference: string
+    amount: number
+    currency: string
+    status: PaymentStatus
+}
+
+export type CaseStatus = 'OPEN' | 'CLAIMED' | 'ESCALATED' | 'RESOLVED'
+
+export interface ComplianceCase {
+    id: string
+    reference: string
+    status: CaseStatus
+}
+
+export type KycStatus = 'INITIATED' | 'SCREENING' | 'APPROVED' | 'REJECTED'
+
+export interface KycSession {
+    id: string
+    subjectReference: string
+    status: KycStatus
+}
