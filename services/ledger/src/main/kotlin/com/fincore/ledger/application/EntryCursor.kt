@@ -7,7 +7,7 @@ import java.time.Instant
 import java.util.Base64
 import java.util.UUID
 
-// Opaque keyset cursor over (postedAt, id). The wire form is base64url; clients must treat it as opaque.
+// Wire form is base64url; clients must treat it as opaque and never construct it manually.
 data class EntryCursor(
     val postedAt: Instant,
     val id: UUID,

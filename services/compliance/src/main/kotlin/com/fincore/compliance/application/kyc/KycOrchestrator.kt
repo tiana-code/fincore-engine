@@ -8,13 +8,10 @@ import com.fincore.core.KycSessionId
 import org.springframework.stereotype.Service
 
 /**
- * Drives an initiated KYC session through screening. NOT transactional: each persisted transition is its own short
- * transaction on [KycService], and the external [KycProvider.check] runs between them, never inside a transaction
- * (CLAUDE.md 8.10). A [KycProviderException] propagates and leaves the session in SCREENING for a future re-attempt.
- *
- * Concurrent process calls on the same session resolve via the entity's optimistic lock: the loser's
- * OptimisticLockingFailureException propagates. Pending and InsufficientData leave the session in SCREENING (there is
- * no PENDING status); a later re-screen advances it. The provider reference is not persisted.
+ * NOT transactional: each persisted transition is its own short transaction on [KycService], and the external
+ * [KycProvider.check] runs between them, never inside a transaction. A [KycProviderException], Pending, or
+ * InsufficientData leaves the session in SCREENING for a later re-screen; concurrent calls resolve via the entity's
+ * optimistic lock.
  */
 @Service
 class KycOrchestrator(

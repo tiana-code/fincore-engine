@@ -63,8 +63,8 @@ class LedgerApiMapperTest {
 
     @Test
     fun `should parse entry account ids and keep signed amounts when mapping a post command`() {
-        val a = AccountId.generate()
-        val b = AccountId.generate()
+        val debitAccount = AccountId.generate()
+        val creditAccount = AccountId.generate()
         val request =
             PostTransactionRequest(
                 reference = "ref-1",
@@ -72,8 +72,8 @@ class LedgerApiMapperTest {
                 currency = "EUR",
                 entries =
                     listOf(
-                        EntryLineRequest(a.toString(), EntryDirection.DEBIT, BigDecimal("100.00")),
-                        EntryLineRequest(b.toString(), EntryDirection.CREDIT, BigDecimal("-100.00")),
+                        EntryLineRequest(debitAccount.toString(), EntryDirection.DEBIT, BigDecimal("100.00")),
+                        EntryLineRequest(creditAccount.toString(), EntryDirection.CREDIT, BigDecimal("-100.00")),
                     ),
             )
 
@@ -83,9 +83,9 @@ class LedgerApiMapperTest {
         command.actor shouldBe "user-1"
         command.correlationId shouldBe "corr-1"
         command.requestHash shouldBe "hash-2"
-        command.entries[0].accountId shouldBe a
+        command.entries[0].accountId shouldBe debitAccount
         command.entries[0].amount.compareTo(BigDecimal("100.00")) shouldBe 0
-        command.entries[1].accountId shouldBe b
+        command.entries[1].accountId shouldBe creditAccount
         command.entries[1].amount.compareTo(BigDecimal("-100.00")) shouldBe 0
     }
 

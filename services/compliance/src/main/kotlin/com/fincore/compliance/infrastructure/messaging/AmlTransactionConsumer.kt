@@ -11,10 +11,7 @@ import com.fincore.events.LedgerEvents
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 
-/**
- * Subscribes to the ledger transaction topic and forwards posted transactions to the AML handler. The topic also
- * carries other Transaction events, so only TransactionPosted is handled; everything else is ignored.
- */
+// The ledger transaction topic carries several event types; only TransactionPosted is forwarded to the AML handler.
 @Component
 class AmlTransactionConsumer(
     private val objectMapper: ObjectMapper,

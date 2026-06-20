@@ -3,7 +3,6 @@
 
 package com.fincore.compliance.application.case
 
-/** Command to open a compliance case. [reference] is a generic, opaque case reference (validated by the domain). */
 data class OpenCaseCommand(
     val reference: String,
 )

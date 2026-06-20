@@ -9,11 +9,7 @@ import com.fincore.compliance.application.kyc.KycProvider
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 
-/**
- * Deterministic in-tree sandbox KYC provider, off by default. Encodes no real provider logic; the outcome is keyed on
- * documented case-insensitive markers in the opaque subject reference: "reject" -> Rejected, "pending" -> Pending,
- * "insufficient" -> InsufficientData, otherwise -> Approved. The same reference always yields the same result.
- */
+// In-tree sandbox provider, off by default; the outcome is a deterministic function of markers in the subject reference.
 @Component
 @ConditionalOnProperty(
     prefix = "fincore.compliance.kyc.sandbox",

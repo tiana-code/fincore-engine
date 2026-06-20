@@ -14,11 +14,6 @@ import com.fincore.decision.store.exception.InputNotMappableException
 import com.fincore.decision.store.exception.InputTooLargeException
 import org.springframework.stereotype.Component
 
-/**
- * Maps a JSON input object to typed evaluation attributes, enforcing the attribute-count and per-value
- * string-length caps before the input reaches the engine. Shared by the evaluate and replay paths so the
- * caps are defined once.
- */
 @Component
 class InputMapper(
     private val properties: DecisionApiProperties,

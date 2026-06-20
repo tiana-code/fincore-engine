@@ -17,11 +17,11 @@ class KycSessionTest {
 
     @Test
     fun `should advance through screening to approved when transitioned legally`() {
-        val s = session()
-        s.transitionTo(KycStatus.SCREENING)
-        s.transitionTo(KycStatus.APPROVED)
-        s.status shouldBe KycStatus.APPROVED
-        s.isTerminal() shouldBe true
+        val session = session()
+        session.transitionTo(KycStatus.SCREENING)
+        session.transitionTo(KycStatus.APPROVED)
+        session.status shouldBe KycStatus.APPROVED
+        session.isTerminal() shouldBe true
     }
 
     @Test
