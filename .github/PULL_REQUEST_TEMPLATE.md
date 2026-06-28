@@ -42,7 +42,7 @@ Closes #
 - [ ] CHANGELOG entry added (or release-please will handle via Conventional Commits)
 - [ ] No PII, credentials, or secrets included
 - [ ] SPDX license header present on all new Kotlin/Java source files
-- [ ] No prohibited terms in code or comments (vessel, maritime, IMO, AIS, specific partner names)
+- [ ] No prohibited terms in code or comments (internal or private-domain terms, specific partner or third-party company names)
 - [ ] Idempotency-Key handling included for new POST/PUT/DELETE endpoints
 - [ ] `@Transactional` not placed on controllers; no external HTTP calls inside `@Transactional`
 - [ ] Money values use `BigDecimal` - no `Float` or `Double`
