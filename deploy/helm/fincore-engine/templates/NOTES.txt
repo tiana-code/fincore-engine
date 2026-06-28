@@ -1,0 +1,19 @@
+FinCore Engine has been deployed.
+
+Enabled services:
+{{- if .Values.ledger.enabled }}
+  - ledger
+{{- end }}
+{{- if .Values.payments.enabled }}
+  - payments
+{{- end }}
+{{- if .Values.web.enabled }}
+  - web (sandbox dashboard)
+{{- end }}
+
+Check rollout status:
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+Each service is its own sub-chart. Tune a service by overriding under its key,
+for example:
+  helm upgrade {{ .Release.Name }} . --set ledger.replicaCount=3

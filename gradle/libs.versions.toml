@@ -19,6 +19,7 @@ cloudevents = "4.1.1"
 ksp = "2.0.21-1.0.28"
 spring-dependency-management = "1.1.7"
 spotless = "7.0.4"
+cyclonedx = "3.2.4"
 
 [libraries]
 # Kotlin
@@ -96,3 +97,4 @@ spring-dependency-management = { id = "io.spring.dependency-management", version
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+cyclonedx = { id = "org.cyclonedx.bom", version.ref = "cyclonedx" }
