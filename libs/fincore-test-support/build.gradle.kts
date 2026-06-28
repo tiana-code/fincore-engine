@@ -16,7 +16,7 @@ dependencies {
     implementation(project(":libs:fincore-core"))
     implementation(project(":libs:fincore-events"))
 
-    // Test infra is API of this module — exposed to consumers
+    // Test infra is API of this module - exposed to consumers
     api(libs.testcontainers.core)
     api(libs.testcontainers.junit5)
     api(libs.testcontainers.postgres)

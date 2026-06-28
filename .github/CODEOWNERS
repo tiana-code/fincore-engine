@@ -1,4 +1,4 @@
-# CODEOWNERS — https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# CODEOWNERS - https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 #
 # Each line is a file pattern followed by one or more owners.
 # Order matters: the last matching pattern takes precedence.
@@ -7,14 +7,14 @@
 # Default owner for all files not matched by a later rule
 * @tiana-code
 
-# Workflows — require explicit review to prevent supply-chain attacks
+# Workflows - require explicit review to prevent supply-chain attacks
 .github/workflows/ @tiana-code
 
 # Security-sensitive files
 SECURITY.md @tiana-code
 .github/ISSUE_TEMPLATE/security.md @tiana-code
 
-# Core domain — ledger, payments, compliance
+# Core domain - ledger, payments, compliance
 services/ledger/ @tiana-code
 services/payments/ @tiana-code
 services/compliance/ @tiana-code
@@ -26,5 +26,5 @@ libs/ @tiana-code
 # Infrastructure / deploy
 deploy/ @tiana-code
 
-# License — must not be changed without owner approval
+# License - must not be changed without owner approval
 LICENSE @tiana-code

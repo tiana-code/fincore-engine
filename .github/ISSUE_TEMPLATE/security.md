@@ -1,12 +1,12 @@
 ---
 name: Security Vulnerability
-about: DO NOT use this template for security issues — read below
+about: DO NOT use this template for security issues - read below
 title: ""
 labels: ""
 assignees: ""
 ---
 
-<!-- STOP — Do not report security vulnerabilities here -->
+<!-- STOP - Do not report security vulnerabilities here -->
 
 If you have found a security vulnerability in FinCore Engine, please **do not** open a public
 GitHub issue. Public disclosure before a fix is available puts all users at risk.
@@ -15,7 +15,7 @@ GitHub issue. Public disclosure before a fix is available puts all users at risk
 
 1. **GitHub Security Advisories** (preferred):
    [Report a vulnerability](https://github.com/tiana-code/fincore-engine/security/advisories/new)
-   — this creates a private, encrypted report that only maintainers can see.
+   - this creates a private, encrypted report that only maintainers can see.
 
 2. **Email**: security@itiana.dev
 

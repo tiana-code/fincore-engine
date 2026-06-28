@@ -1,7 +1,7 @@
 # Auto-detect text files, normalize to LF on commit
 * text=auto eol=lf
 
-# Source code — force LF
+# Source code - force LF
 *.kt        text eol=lf diff=kotlin
 *.kts       text eol=lf diff=kotlin
 *.java      text eol=lf diff=java
@@ -50,14 +50,14 @@ gradlew.bat text eol=crlf
 *.tar       binary
 *.gz        binary
 
-# Linguist overrides — don't count vendored/generated in language stats
+# Linguist overrides - don't count vendored/generated in language stats
 docs/**        linguist-documentation
 wiki/**        linguist-documentation
 **/generated/** linguist-generated
 **/build/**     linguist-generated
 api/openapi.yaml linguist-detectable
 
-# Export-ignore — exclude from git archive tarballs
+# Export-ignore - exclude from git archive tarballs
 .github/        export-ignore
 .claude/        export-ignore
 .editorconfig   export-ignore

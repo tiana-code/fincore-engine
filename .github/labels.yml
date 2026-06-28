@@ -3,7 +3,7 @@
 # Or via github-label-sync: npx github-label-sync --labels .github/labels.yml tiana-code/fincore-engine
 
 # ============================================================
-# Type — what kind of change
+# Type - what kind of change
 # ============================================================
 - name: "type:bug"
   color: "d73a4a"
@@ -35,16 +35,16 @@
 # ============================================================
 - name: "P0"
   color: "B60205"
-  description: "Critical — blocks release or production"
+  description: "Critical - blocks release or production"
 - name: "P1"
   color: "D93F0B"
-  description: "High — must ship this iteration"
+  description: "High - must ship this iteration"
 - name: "P2"
   color: "FBCA04"
-  description: "Medium — ship within current sprint"
+  description: "Medium - ship within current sprint"
 - name: "P3"
   color: "FEF2C0"
-  description: "Low — nice to have"
+  description: "Low - nice to have"
 
 # ============================================================
 # Effort estimate
@@ -66,7 +66,7 @@
   description: "More than 40 hours"
 
 # ============================================================
-# Area — which component
+# Area - which component
 # ============================================================
 - name: "area:ledger"
   color: "006B75"
@@ -122,7 +122,7 @@
   description: "Actively being worked on"
 - name: "status:wontfix"
   color: "ededed"
-  description: "Won't fix — out of scope or design decision"
+  description: "Won't fix - out of scope or design decision"
 - name: "status:duplicate"
   color: "ededed"
   description: "Duplicate of another issue"
@@ -138,10 +138,10 @@
   description: "Maintainer requests community help"
 - name: "breaking-change"
   color: "B60205"
-  description: "Breaking change — bumps major version"
+  description: "Breaking change - bumps major version"
 - name: "dependencies"
   color: "0366d6"
   description: "Dependency update (managed by Dependabot)"
 - name: "Epic"
   color: "3B0F8A"
-  description: "Epic — groups feature work spanning multiple issues"
+  description: "Epic - groups feature work spanning multiple issues"
