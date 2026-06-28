@@ -14,7 +14,6 @@ import com.fincore.decision.store.exception.InvalidRuleDslException
 import com.fincore.decision.store.persistence.DecisionLogEntity
 import com.fincore.decision.store.persistence.DecisionLogRepository
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 
 @Service
 class ReplayServiceImpl(
@@ -25,7 +24,8 @@ class ReplayServiceImpl(
     private val decisionLogRepository: DecisionLogRepository,
     private val properties: DecisionApiProperties,
 ) : ReplayService {
-    @Transactional(readOnly = true)
+    // No ambient transaction: each baseline lookup runs in its own short-lived read,
+    // so the bounded evaluation between lookups holds no pooled JDBC connection.
     override fun replay(
         candidateDsl: String,
         inputs: List<Map<String, JsonNode>>,
