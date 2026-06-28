@@ -223,7 +223,7 @@ export function Sidebar({ active = 'Overview' }: { active?: string }) {
                             whiteSpace: 'nowrap',
                         }}
                     >
-                        mercator-eu-prod
+                        acme-eu-prod
                     </div>
                 </div>
                 <Icon name="chevDown" size={12} />

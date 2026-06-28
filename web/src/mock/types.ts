@@ -5,60 +5,62 @@ import type { IconName } from '@/components/Icon'
 import type { Tone } from '@/lib/tone'
 
 export interface ServiceHealth {
-  name: string
-  version: string
-  ok: boolean
+    name: string
+    version: string
+    ok: boolean
 }
 
 export interface KpiSegment {
-  text: string
-  tone: Tone
+    text: string
+    tone: Tone
 }
 
 export interface KpiDatum {
-  label: string
-  value: string
-  sub: KpiSegment[]
-  spark: number[]
-  sparkColor?: string
+    label: string
+    value: string
+    sub: KpiSegment[]
+    // Live KPIs derived from the API omit the sparkline: a single count has no
+    // time series, so a trend line would be fabricated. Sample KPIs keep it.
+    spark?: number[]
+    sparkColor?: string
 }
 
 export interface ActivityEvent {
-  type: string
-  detail: string
-  ts: string
-  icon: IconName
-  tone: Tone
+    type: string
+    detail: string
+    ts: string
+    icon: IconName
+    tone: Tone
 }
 
 export interface ApiExample {
-  title: string
-  endpoint: string
-  icon: IconName
-  curl: string
+    title: string
+    endpoint: string
+    icon: IconName
+    curl: string
 }
 
 export interface SystemLink {
-  title: string
-  sub: string
-  url: string
-  icon: IconName
+    title: string
+    sub: string
+    url: string
+    icon: IconName
 }
 
 export interface SandboxStatus {
-  title: string
-  version: string
-  build: string
-  uptime: string
-  user: string
-  tenant: string
+    title: string
+    version: string
+    build: string
+    uptime: string
+    user: string
+    tenant: string
 }
 
 export interface OverviewData {
-  status: SandboxStatus
-  services: ServiceHealth[]
-  kpis: KpiDatum[]
-  activity: ActivityEvent[]
-  apiExamples: ApiExample[]
-  systemLinks: SystemLink[]
+    status: SandboxStatus
+    services: ServiceHealth[]
+    kpis: KpiDatum[]
+    activity: ActivityEvent[]
+    apiExamples: ApiExample[]
+    systemLinks: SystemLink[]
 }
