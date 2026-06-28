@@ -18,8 +18,14 @@ function page(
 }
 
 const SAMPLE: PaymentResponse[] = [
-    { id: 'pay_0001', reference: 'order-1', amount: 100.0, currency: 'USD', status: 'INITIATED' },
-    { id: 'pay_0002', reference: 'order-2', amount: 250.5, currency: 'EUR', status: 'SETTLED' },
+    {
+        id: 'pay_0001',
+        reference: 'order-1',
+        amount: '100.00',
+        currency: 'USD',
+        status: 'INITIATED',
+    },
+    { id: 'pay_0002', reference: 'order-2', amount: '250.50', currency: 'EUR', status: 'SETTLED' },
 ]
 
 function ok(body: unknown) {

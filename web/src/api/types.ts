@@ -107,7 +107,7 @@ export type PaymentStatus =
 export interface PaymentResponse {
     id: string
     reference: string
-    amount: number
+    amount: string
     currency: string
     status: PaymentStatus
 }
