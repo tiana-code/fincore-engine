@@ -70,7 +70,7 @@ export type PaymentStatus = 'INITIATED' | 'SCREENING' | 'SUBMITTED' | 'SETTLED' 
 export interface Payment {
     id: string
     reference: string
-    amount: number
+    amount: string
     currency: string
     status: PaymentStatus
 }

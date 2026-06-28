@@ -12,14 +12,14 @@ Closes #
 
 <!-- Mark all that apply with an [x]. -->
 
-- [ ] `fix` — bug fix (non-breaking)
-- [ ] `feat` — new feature (non-breaking)
-- [ ] `feat!` / `fix!` — breaking change
-- [ ] `refactor` — code restructuring without behavior change
-- [ ] `perf` — performance improvement
-- [ ] `test` — tests only
-- [ ] `docs` — documentation only
-- [ ] `chore` — build, CI, config, deps
+- [ ] `fix` - bug fix (non-breaking)
+- [ ] `feat` - new feature (non-breaking)
+- [ ] `feat!` / `fix!` - breaking change
+- [ ] `refactor` - code restructuring without behavior change
+- [ ] `perf` - performance improvement
+- [ ] `test` - tests only
+- [ ] `docs` - documentation only
+- [ ] `chore` - build, CI, config, deps
 
 ## Testing Done
 
@@ -27,7 +27,7 @@ Closes #
 
 - [ ] Unit tests added / updated (`./gradlew test`)
 - [ ] Integration tests added / updated (`./gradlew integrationTest`)
-- [ ] Tested manually — describe steps:
+- [ ] Tested manually - describe steps:
 
 ## Screenshots / Logs
 
@@ -45,4 +45,4 @@ Closes #
 - [ ] No prohibited terms in code or comments (vessel, maritime, IMO, AIS, specific partner names)
 - [ ] Idempotency-Key handling included for new POST/PUT/DELETE endpoints
 - [ ] `@Transactional` not placed on controllers; no external HTTP calls inside `@Transactional`
-- [ ] Money values use `BigDecimal` — no `Float` or `Double`
+- [ ] Money values use `BigDecimal` - no `Float` or `Double`

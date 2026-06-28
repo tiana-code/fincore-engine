@@ -4,7 +4,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ComplianceClient, FincoreError, PaymentsClient } from '../src/index.js'
 
-const payment = { id: 'pay_1', reference: 'po-1', amount: 125.5, currency: 'USD', status: 'SETTLED' }
+const payment = { id: 'pay_1', reference: 'po-1', amount: '125.50', currency: 'USD', status: 'SETTLED' }
 const paymentPage = { items: [payment], page: 0, size: 20, totalElements: 1, totalPages: 1 }
 const complianceCase = { id: 'case_1', reference: 'c-1', status: 'OPEN' }
 const kycSession = { id: 'kyc_1', subjectReference: 'subj-1', status: 'APPROVED' }
@@ -29,11 +29,11 @@ describe('PaymentsClient', () => {
         expect(fetchFn.mock.calls[0]?.[0]).toBe('http://payments:8081/v1/payments?page=0&size=20')
     })
 
-    it('keeps the payment amount as a number', async () => {
+    it('keeps the payment amount as a string to preserve decimal precision', async () => {
         const fetchFn = mockFetch(payment)
         const result = await new PaymentsClient({ baseUrl: 'http://payments:8081', fetch: fetchFn }).getPayment('pay_1')
-        expect(result.amount).toBe(125.5)
-        expect(typeof result.amount).toBe('number')
+        expect(result.amount).toBe('125.50')
+        expect(typeof result.amount).toBe('string')
     })
 
     it('sends the bearer token when set', async () => {

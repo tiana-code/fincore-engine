@@ -13,7 +13,7 @@
 
 ## What it is
 
-FinCore Engine is a modular, JVM-based financial core that provides the infrastructure layer for regulated fintech products. It handles the hard parts - ledger consistency, idempotent payment processing, KYC/AML orchestration, and explainable compliance decisions - so teams can focus on their domain logic.
+FinCore Engine is a modular, JVM-based financial core that provides the infrastructure layer for regulated fintech products. It handles the hard parts: ledger consistency, idempotent payment processing, KYC/AML orchestration, and explainable compliance decisions. Teams build their domain logic on top.
 
 **What it is not:** a payment gateway, a banking-as-a-service product, or a SaaS platform. It is a self-hosted, embeddable engine for teams building their own regulated financial products.
 

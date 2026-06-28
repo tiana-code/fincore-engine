@@ -27,4 +27,14 @@ class EvaluationTransactionBoundaryTest {
 
         AnnotatedElementUtils.findMergedAnnotation(method, Transactional::class.java).shouldNotBeNull()
     }
+
+    @Test
+    fun `should not wrap replay in a transaction so it holds no connection across the bounded evals`() {
+        val method = requireNotNull(ReplayServiceImpl::replay.javaMethod)
+
+        AnnotatedElementUtils.findMergedAnnotation(method, Transactional::class.java).shouldBeNull()
+        AnnotatedElementUtils
+            .findMergedAnnotation(ReplayServiceImpl::class.java, Transactional::class.java)
+            .shouldBeNull()
+    }
 }

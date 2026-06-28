@@ -2,9 +2,9 @@
 // SPDX-FileCopyrightText: 2026 FinCore Engine Authors
 
 export function formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
-  return new Intl.NumberFormat('en-US', options).format(value)
+    return new Intl.NumberFormat('en-US', options).format(value)
 }
 
-export function formatMoney(amount: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount)
+export function formatMoney(amount: string, currency: string): string {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(amount))
 }

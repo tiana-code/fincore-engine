@@ -29,6 +29,6 @@ jobs:
         with:
           # Supply-chain enrichment feed for Dependabot, not a correctness gate
           # (build/test/security gates live in ci.yml). A platform-side rejection
-          # — e.g. the repo dependency-graph feature flag being off — emits a
+          # - e.g. the repo dependency-graph feature flag being off - emits a
           # warning instead of failing trunk. Drop once the feature is confirmed on.
           dependency-graph-continue-on-failure: true
