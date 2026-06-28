@@ -1,0 +1,13 @@
+# Umbrella values. Each block below is forwarded to the matching sub-chart.
+# Toggle a service off to deploy a subset of the stack. Per-service tuning
+# (resources, image tag, secrets) lives in the sub-chart values and can be
+# overridden here under the same key.
+
+ledger:
+  enabled: true
+
+payments:
+  enabled: true
+
+web:
+  enabled: true

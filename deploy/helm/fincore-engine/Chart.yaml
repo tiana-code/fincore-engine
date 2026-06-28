@@ -1,0 +1,24 @@
+apiVersion: v2
+name: fincore-engine
+description: FinCore Engine umbrella chart, deploys the ledger, payments and sandbox web services as one stack
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/tiana-code/fincore-engine
+sources:
+  - https://github.com/tiana-code/fincore-engine
+maintainers:
+  - name: FinCore Engine Authors
+dependencies:
+  - name: ledger
+    version: 0.1.0
+    repository: file://../ledger
+    condition: ledger.enabled
+  - name: payments
+    version: 0.1.0
+    repository: file://../payments
+    condition: payments.enabled
+  - name: web
+    version: 0.1.0
+    repository: file://../web
+    condition: web.enabled

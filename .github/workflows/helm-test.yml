@@ -63,3 +63,40 @@ jobs:
             --set image.tag=test --set serviceMonitor.enabled=true)
           echo "$rendered" | grep -q 'kind: ServiceMonitor'
           echo "$rendered" | kubeconform -strict -summary -skip ServiceMonitor -kubernetes-version "$KUBERNETES_VERSION"
+
+  umbrella-test:
+    name: Umbrella Lint & Validate
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    env:
+      KUBECONFORM_VERSION: v0.6.7
+      KUBERNETES_VERSION: "1.31.0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v5
+        with:
+          version: "v3.16.4"
+
+      - name: Build chart dependencies
+        run: helm dependency build deploy/helm/fincore-engine
+
+      - name: Helm lint
+        run: helm lint deploy/helm/fincore-engine
+
+      - name: Install kubeconform
+        run: |
+          curl -sSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | tar -xz kubeconform
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Helm template and validate manifests
+        run: |
+          helm template fincore deploy/helm/fincore-engine \
+            | kubeconform -strict -summary -skip ServiceMonitor -kubernetes-version "$KUBERNETES_VERSION"
