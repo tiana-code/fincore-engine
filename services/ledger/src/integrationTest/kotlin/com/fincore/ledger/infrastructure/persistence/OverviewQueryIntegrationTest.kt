@@ -8,7 +8,6 @@ import com.fincore.ledger.domain.enum.AccountType
 import com.fincore.ledger.domain.enum.EntryDirection
 import com.fincore.ledger.domain.enum.TransactionStatus
 import com.fincore.test.containers.PostgresContainerExtension
-import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -119,22 +118,24 @@ class OverviewQueryIntegrationTest(
     @Test
     fun `findRecentActivity returns label as COALESCE description reference`() {
         val (accountA, accountB) = saveAccountPair()
-        val withDescription = saveBalancedTx(
-            debitAccount = accountA,
-            creditAccount = accountB,
-            amount = BigDecimal("100.00"),
-            reference = "ref-desc-${ UUID.randomUUID() }",
-            description = "wallet top-up",
-            postedAt = baseHour,
-        )
-        val withoutDescription = saveBalancedTx(
-            debitAccount = accountA,
-            creditAccount = accountB,
-            amount = BigDecimal("50.00"),
-            reference = "ref-only-${ UUID.randomUUID() }",
-            description = null,
-            postedAt = baseHour.minusSeconds(60),
-        )
+        val withDescription =
+            saveBalancedTx(
+                debitAccount = accountA,
+                creditAccount = accountB,
+                amount = BigDecimal("100.00"),
+                reference = "ref-desc-${ UUID.randomUUID() }",
+                description = "wallet top-up",
+                postedAt = baseHour,
+            )
+        val withoutDescription =
+            saveBalancedTx(
+                debitAccount = accountA,
+                creditAccount = accountB,
+                amount = BigDecimal("50.00"),
+                reference = "ref-only-${ UUID.randomUUID() }",
+                description = null,
+                postedAt = baseHour.minusSeconds(60),
+            )
         entityManager.flush()
         entityManager.clear()
 
@@ -150,14 +151,15 @@ class OverviewQueryIntegrationTest(
     @Test
     fun `findRecentActivity amount equals sum of positive DEBIT entries`() {
         val (accountA, accountB) = saveAccountPair()
-        val posted = saveBalancedTx(
-            debitAccount = accountA,
-            creditAccount = accountB,
-            amount = BigDecimal("250.500000000000000000"),
-            reference = "ref-amount-${ UUID.randomUUID() }",
-            description = null,
-            postedAt = baseHour,
-        )
+        val posted =
+            saveBalancedTx(
+                debitAccount = accountA,
+                creditAccount = accountB,
+                amount = BigDecimal("250.500000000000000000"),
+                reference = "ref-amount-${ UUID.randomUUID() }",
+                description = null,
+                postedAt = baseHour,
+            )
         entityManager.flush()
         entityManager.clear()
 
@@ -216,22 +218,24 @@ class OverviewQueryIntegrationTest(
     @Test
     fun `findRecentActivity returns results ordered by postedAt desc`() {
         val (accountA, accountB) = saveAccountPair()
-        val older = saveBalancedTx(
-            debitAccount = accountA,
-            creditAccount = accountB,
-            amount = BigDecimal("10.00"),
-            reference = "ref-old-${ UUID.randomUUID() }",
-            description = null,
-            postedAt = baseHour,
-        )
-        val newer = saveBalancedTx(
-            debitAccount = accountA,
-            creditAccount = accountB,
-            amount = BigDecimal("20.00"),
-            reference = "ref-new-${ UUID.randomUUID() }",
-            description = null,
-            postedAt = baseHour.plus(1L, ChronoUnit.HOURS),
-        )
+        val older =
+            saveBalancedTx(
+                debitAccount = accountA,
+                creditAccount = accountB,
+                amount = BigDecimal("10.00"),
+                reference = "ref-old-${ UUID.randomUUID() }",
+                description = null,
+                postedAt = baseHour,
+            )
+        val newer =
+            saveBalancedTx(
+                debitAccount = accountA,
+                creditAccount = accountB,
+                amount = BigDecimal("20.00"),
+                reference = "ref-new-${ UUID.randomUUID() }",
+                description = null,
+                postedAt = baseHour.plus(1L, ChronoUnit.HOURS),
+            )
         entityManager.flush()
         entityManager.clear()
 

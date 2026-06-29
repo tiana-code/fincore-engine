@@ -76,10 +76,11 @@ class OverviewServiceImplTest {
 
     @Test
     fun `should map reverses_id presence to TRANSACTION_REVERSED type`() {
-        every { transactionRepository.findRecentActivity(any()) } returns listOf(
-            txRow(reversal = false),
-            txRow(reversal = true),
-        )
+        every { transactionRepository.findRecentActivity(any()) } returns
+            listOf(
+                txRow(reversal = false),
+                txRow(reversal = true),
+            )
         every { accountRepository.findAllByOrderByCreatedAtDesc(any<Pageable>()) } returns emptyList()
         every { transactionRepository.countByHourSince(any()) } returns emptyList()
 
@@ -95,9 +96,10 @@ class OverviewServiceImplTest {
         val accountTime = base.plusSeconds(60)
 
         every { transactionRepository.findRecentActivity(any()) } returns listOf(txRow(postedAt = txTime))
-        every { accountRepository.findAllByOrderByCreatedAtDesc(any<Pageable>()) } returns listOf(
-            accountEntity(createdAt = accountTime),
-        )
+        every { accountRepository.findAllByOrderByCreatedAtDesc(any<Pageable>()) } returns
+            listOf(
+                accountEntity(createdAt = accountTime),
+            )
         every { transactionRepository.countByHourSince(any()) } returns emptyList()
 
         val snapshot = service.overview()
@@ -141,10 +143,11 @@ class OverviewServiceImplTest {
         val since = nowHour.minus(23L, ChronoUnit.HOURS)
 
         // Two transactions in slot 0 (oldest), one transaction in slot 23 (current hour)
-        val rows = listOf(
-            hourRow(bucket = since, cnt = 2L),
-            hourRow(bucket = nowHour, cnt = 1L),
-        )
+        val rows =
+            listOf(
+                hourRow(bucket = since, cnt = 2L),
+                hourRow(bucket = nowHour, cnt = 1L),
+            )
 
         every { transactionRepository.findRecentActivity(any()) } returns emptyList()
         every { accountRepository.findAllByOrderByCreatedAtDesc(any<Pageable>()) } returns emptyList()
@@ -154,9 +157,9 @@ class OverviewServiceImplTest {
 
         val sparkline = snapshot.transactionsLast24h
         sparkline shouldHaveSize 24
-        sparkline[0] shouldBe 2        // oldest slot
-        sparkline[23] shouldBe 1       // current hour
-        sparkline[1] shouldBe 0        // gap filled with zero
+        sparkline[0] shouldBe 2 // oldest slot
+        sparkline[23] shouldBe 1 // current hour
+        sparkline[1] shouldBe 0 // gap filled with zero
         sparkline[22] shouldBe 0
         sparkline.sum() shouldBe 3
     }
@@ -164,9 +167,10 @@ class OverviewServiceImplTest {
     @Test
     fun `should map account created items with null amount`() {
         every { transactionRepository.findRecentActivity(any()) } returns emptyList()
-        every { accountRepository.findAllByOrderByCreatedAtDesc(any<Pageable>()) } returns listOf(
-            accountEntity(name = "Settlement Reserve"),
-        )
+        every { accountRepository.findAllByOrderByCreatedAtDesc(any<Pageable>()) } returns
+            listOf(
+                accountEntity(name = "Settlement Reserve"),
+            )
         every { transactionRepository.countByHourSince(any()) } returns emptyList()
 
         val snapshot = service.overview()
