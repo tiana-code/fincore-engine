@@ -5,6 +5,7 @@ package com.fincore.ledger.api.mapper
 
 import com.fincore.core.AccountId
 import com.fincore.core.Currency
+import com.fincore.core.TransactionId
 import com.fincore.ledger.api.dto.request.CreateAccountRequest
 import com.fincore.ledger.api.dto.request.PostTransactionRequest
 import com.fincore.ledger.api.dto.response.AccountEntryResponse
@@ -12,6 +13,8 @@ import com.fincore.ledger.api.dto.response.AccountResponse
 import com.fincore.ledger.api.dto.response.BalanceResponse
 import com.fincore.ledger.api.dto.response.EntryPageResponse
 import com.fincore.ledger.api.dto.response.EntryResponse
+import com.fincore.ledger.api.dto.response.OverviewActivityResponse
+import com.fincore.ledger.api.dto.response.OverviewResponse
 import com.fincore.ledger.api.dto.response.PageResponse
 import com.fincore.ledger.api.dto.response.TransactionDetailResponse
 import com.fincore.ledger.api.dto.response.TransactionResponse
@@ -19,15 +22,18 @@ import com.fincore.ledger.application.AccountBalance
 import com.fincore.ledger.application.AccountEntry
 import com.fincore.ledger.application.AccountEntryPage
 import com.fincore.ledger.application.AccountPage
+import com.fincore.ledger.application.ActivityItem
 import com.fincore.ledger.application.CreateAccountCommand
 import com.fincore.ledger.application.EntryLine
 import com.fincore.ledger.application.EntryView
+import com.fincore.ledger.application.OverviewSnapshot
 import com.fincore.ledger.application.PostTransactionCommand
 import com.fincore.ledger.application.PostedTransaction
 import com.fincore.ledger.application.TransactionDetail
 import com.fincore.ledger.application.TransactionPage
 import com.fincore.ledger.application.TransactionSummary
 import com.fincore.ledger.domain.Account
+import com.fincore.ledger.domain.enum.ActivityType
 import org.springframework.stereotype.Component
 
 // Hand-written, not MapStruct: the command/domain side uses Kotlin value classes (AccountId, Currency,
@@ -155,4 +161,27 @@ class LedgerApiMapper {
             totalElements = page.totalElements,
             totalPages = page.totalPages,
         )
+
+    fun toResponse(snapshot: OverviewSnapshot): OverviewResponse =
+        OverviewResponse(
+            activity = snapshot.activity.map(::toActivityResponse),
+            transactionsLast24h = snapshot.transactionsLast24h,
+        )
+
+    private fun toActivityResponse(item: ActivityItem): OverviewActivityResponse {
+        val (typeString, resourceId) =
+            when (item.type) {
+                ActivityType.TRANSACTION_POSTED -> "transaction.posted" to TransactionId(item.resourceId).toString()
+                ActivityType.TRANSACTION_REVERSED -> "transaction.reversed" to TransactionId(item.resourceId).toString()
+                ActivityType.ACCOUNT_CREATED -> "account.created" to AccountId(item.resourceId).toString()
+            }
+        return OverviewActivityResponse(
+            type = typeString,
+            resourceId = resourceId,
+            label = item.label,
+            amount = item.amount,
+            currency = item.currency,
+            occurredAt = item.occurredAt,
+        )
+    }
 }
