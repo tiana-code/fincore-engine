@@ -7,7 +7,7 @@ import { Icon, type IconName } from './Icon'
 interface NavItem {
     name: string
     icon: IconName
-    path?: string
+    path: string
 }
 
 const NAV: NavItem[] = [
@@ -17,7 +17,6 @@ const NAV: NavItem[] = [
     { name: 'Payments', icon: 'send', path: '/payments' },
     { name: 'Decisions', icon: 'scale', path: '/decisions' },
     { name: 'Compliance', icon: 'shield', path: '/compliance/cases' },
-    { name: 'Audit', icon: 'book' },
 ]
 
 const SERVICES = ['postgres', 'redpanda', 'keycloak', 'redis']
@@ -69,30 +68,9 @@ export function Sidebar({ active = 'Overview' }: { active?: string }) {
                 </div>
             </div>
 
-            <div style={{ padding: '12px 12px 8px' }}>
-                <div
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        height: 28,
-                        padding: '0 10px',
-                        background: 'var(--bg)',
-                        border: '1px solid var(--border)',
-                        borderRadius: 4,
-                        color: 'var(--text-3)',
-                        fontSize: 12,
-                    }}
-                >
-                    <Icon name="search" size={13} />
-                    <span style={{ flex: 1 }}>Jump to...</span>
-                    <span className="kbd">Cmd K</span>
-                </div>
-            </div>
-
             <nav
                 style={{
-                    padding: '4px 8px',
+                    padding: '12px 8px 4px',
                     flex: 1,
                     display: 'flex',
                     flexDirection: 'column',
@@ -116,29 +94,16 @@ export function Sidebar({ active = 'Overview' }: { active?: string }) {
                         paddingLeft: 8,
                         textDecoration: 'none',
                     }
-                    const content = (
-                        <>
-                            <Icon name={item.icon} size={14} />
-                            <span>{item.name}</span>
-                        </>
-                    )
-                    return item.path ? (
+                    return (
                         <Link
                             key={item.name}
                             to={item.path}
                             aria-current={isActive ? 'page' : undefined}
                             style={style}
                         >
-                            {content}
+                            <Icon name={item.icon} size={14} />
+                            <span>{item.name}</span>
                         </Link>
-                    ) : (
-                        <div
-                            key={item.name}
-                            aria-current={isActive ? 'page' : undefined}
-                            style={style}
-                        >
-                            {content}
-                        </div>
                     )
                 })}
             </nav>
@@ -226,7 +191,6 @@ export function Sidebar({ active = 'Overview' }: { active?: string }) {
                         acme-eu-prod
                     </div>
                 </div>
-                <Icon name="chevDown" size={12} />
             </div>
         </div>
     )
