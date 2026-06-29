@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.0.21"
 spring-boot = "3.5.15"
-hibernate = "6.6.18.Final"
+hibernate = "7.4.3.Final"
 liquibase = "4.31.1"
 postgres-jdbc = "42.7.11"
 keycloak = "26.6.1"
