@@ -9,6 +9,10 @@
 [![Java 21](https://img.shields.io/badge/Java-21%2B-orange.svg)](https://adoptium.net/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0-purple.svg)](https://kotlinlang.org/)
 
+![FinCore Engine sandbox dashboard](.github/assets/sandbox-overview.png)
+
+> The sandbox dashboard. Headline counts are read live from the API; the activity feed is an illustrative sample.
+
 ---
 
 ## What it is
