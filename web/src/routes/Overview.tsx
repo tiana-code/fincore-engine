@@ -1,24 +1,26 @@
 // SPDX-License-Identifier: BUSL-1.1
 // SPDX-FileCopyrightText: 2026 FinCore Engine Authors
 
+import type { ReactNode } from 'react'
 import { Kpi } from '@/components/Kpi'
 import { Shell } from '@/components/Shell'
-import { ActivityFeed } from '@/features/overview/ActivityFeed'
-import { liveKpis } from '@/features/overview/liveKpis'
-import { OverviewTopBar } from '@/features/overview/OverviewTopBar'
+import { toActivityEvent } from '@/features/overview/activityView'
+import { ActivityFeed, type ActivityState } from '@/features/overview/ActivityFeed'
+import { liveKpis, placeholderKpis } from '@/features/overview/liveKpis'
+import { OverviewTopBar, type OverviewMode } from '@/features/overview/OverviewTopBar'
+import { API_EXAMPLES, SYSTEM_LINKS } from '@/features/overview/overviewConfig'
 import { SystemLinks } from '@/features/overview/SystemLinks'
 import { TryTheApi } from '@/features/overview/TryTheApi'
+import { useLedgerOverview } from '@/features/overview/useLedgerOverview'
 import { useOverviewMetrics } from '@/features/overview/useOverviewMetrics'
-import { getOverview } from '@/mock/overview'
 
-const NOTICE = {
+const NOTICE: Record<OverviewMode, { color: string; body: ReactNode }> = {
     live: {
         color: 'var(--accent)',
         body: (
             <>
-                <strong style={{ color: 'var(--text)' }}>Live metrics.</strong> The headline counts
-                are read from the sandbox API. The recent-activity feed below is an illustrative
-                sample, not a live event stream.
+                <strong style={{ color: 'var(--text)' }}>Live data.</strong> The headline counts and
+                the recent-activity feed are read from the sandbox ledger API.
             </>
         ),
     },
@@ -30,27 +32,32 @@ const NOTICE = {
         color: 'var(--amber)',
         body: (
             <>
-                <strong style={{ color: 'var(--text)' }}>Sandbox API not reachable.</strong> The
-                headline counts below are sample values; start the local stack to see live data. The
-                activity feed is always an illustrative sample.
+                <strong style={{ color: 'var(--text)' }}>Sandbox API not reachable.</strong> Start
+                the local stack to see live data.
             </>
         ),
     },
-} as const
+}
 
 export function Overview() {
-    const { isError, metrics } = useOverviewMetrics()
-    const data = getOverview()
+    const { isError: metricsError, metrics } = useOverviewMetrics()
+    const overview = useLedgerOverview()
 
-    const mode = metrics ? 'live' : isError ? 'offline' : 'loading'
-    const kpis = metrics ? liveKpis(metrics) : data.kpis
+    const mode: OverviewMode = metrics ? 'live' : metricsError ? 'offline' : 'loading'
+    const kpis = metrics
+        ? liveKpis(metrics, overview.data?.transactionsLast24h)
+        : placeholderKpis(mode === 'offline' ? 'unavailable' : 'loading...')
     const notice = NOTICE[mode]
 
+    const activityState: ActivityState = overview.data
+        ? 'ready'
+        : overview.isError
+          ? 'offline'
+          : 'loading'
+    const activity = overview.data?.activity.map((event) => toActivityEvent(event)) ?? []
+
     return (
-        <Shell
-            activeNav="Overview"
-            topBar={<OverviewTopBar status={data.status} services={data.services} />}
-        >
+        <Shell activeNav="Overview" topBar={<OverviewTopBar mode={mode} />}>
             <div className="flex flex-col gap-[18px] px-6 pb-8 pt-6">
                 <div
                     role="note"
@@ -83,10 +90,10 @@ export function Overview() {
                     ))}
                 </div>
                 <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2">
-                    <ActivityFeed activity={data.activity} />
-                    <TryTheApi examples={data.apiExamples} />
+                    <ActivityFeed activity={activity} state={activityState} />
+                    <TryTheApi examples={API_EXAMPLES} />
                 </div>
-                <SystemLinks links={data.systemLinks} />
+                <SystemLinks links={SYSTEM_LINKS} />
             </div>
         </Shell>
     )

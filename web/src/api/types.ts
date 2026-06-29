@@ -111,3 +111,19 @@ export interface PaymentResponse {
     currency: string
     status: PaymentStatus
 }
+
+export type LedgerActivityType = 'transaction.posted' | 'transaction.reversed' | 'account.created'
+
+export interface LedgerActivityEvent {
+    type: LedgerActivityType
+    resourceId: string
+    label: string
+    amount: string | null
+    currency: string | null
+    occurredAt: string
+}
+
+export interface LedgerOverviewResponse {
+    activity: LedgerActivityEvent[]
+    transactionsLast24h: number[]
+}

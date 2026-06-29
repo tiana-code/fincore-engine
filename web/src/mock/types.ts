@@ -4,12 +4,6 @@
 import type { IconName } from '@/components/Icon'
 import type { Tone } from '@/lib/tone'
 
-export interface ServiceHealth {
-    name: string
-    version: string
-    ok: boolean
-}
-
 export interface KpiSegment {
     text: string
     tone: Tone
@@ -45,22 +39,4 @@ export interface SystemLink {
     sub: string
     url: string
     icon: IconName
-}
-
-export interface SandboxStatus {
-    title: string
-    version: string
-    build: string
-    uptime: string
-    user: string
-    tenant: string
-}
-
-export interface OverviewData {
-    status: SandboxStatus
-    services: ServiceHealth[]
-    kpis: KpiDatum[]
-    activity: ActivityEvent[]
-    apiExamples: ApiExample[]
-    systemLinks: SystemLink[]
 }

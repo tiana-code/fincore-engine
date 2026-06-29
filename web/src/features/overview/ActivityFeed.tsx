@@ -5,7 +5,26 @@ import { Icon } from '@/components/Icon'
 import { toneColor } from '@/lib/tone'
 import type { ActivityEvent } from '@/mock/types'
 
-export function ActivityFeed({ activity }: { activity: ActivityEvent[] }) {
+export type ActivityState = 'ready' | 'loading' | 'offline'
+
+const MESSAGE: Record<Exclude<ActivityState, 'ready'>, string> = {
+    loading: 'Loading recent activity...',
+    offline: 'Sandbox API not reachable.',
+}
+
+export function ActivityFeed({
+    activity,
+    state,
+}: {
+    activity: ActivityEvent[]
+    state: ActivityState
+}) {
+    const placeholder =
+        state !== 'ready'
+            ? MESSAGE[state]
+            : activity.length === 0
+              ? 'No recent ledger activity.'
+              : null
     return (
         <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
             <div
@@ -17,66 +36,64 @@ export function ActivityFeed({ activity }: { activity: ActivityEvent[] }) {
                     gap: 8,
                 }}
             >
-                <span style={{ fontSize: 13, fontWeight: 500 }}>Recent activity</span>
-                <span
-                    style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        background: 'var(--accent)',
-                        boxShadow: '0 0 0 4px rgba(20,184,166,0.15)',
-                    }}
-                />
-                <span className="mono" style={{ fontSize: 10.5, color: 'var(--text-3)' }}>
-                    live · last 12m
-                </span>
+                <span style={{ fontSize: 13, fontWeight: 500 }}>Recent ledger activity</span>
             </div>
             <div style={{ padding: '6px 18px 14px' }}>
-                {activity.map((event, i) => (
-                    <div
-                        key={`${event.type}-${i}`}
-                        style={{
-                            display: 'grid',
-                            gridTemplateColumns: '22px 1fr 80px',
-                            alignItems: 'center',
-                            gap: 12,
-                            padding: '10px 0',
-                            borderBottom:
-                                i < activity.length - 1 ? '1px solid var(--border)' : 'none',
-                        }}
-                    >
-                        <span style={{ color: toneColor(event.tone), display: 'inline-flex' }}>
-                            <Icon name={event.icon} size={14} />
-                        </span>
-                        <div style={{ minWidth: 0 }}>
-                            <div
-                                className="mono"
-                                style={{ fontSize: 11.5, color: toneColor(event.tone) }}
-                            >
-                                {event.type}
+                {placeholder ? (
+                    <div style={{ padding: '18px 0', fontSize: 12, color: 'var(--text-3)' }}>
+                        {placeholder}
+                    </div>
+                ) : (
+                    activity.map((event, i) => (
+                        <div
+                            key={event.detail}
+                            style={{
+                                display: 'grid',
+                                gridTemplateColumns: '22px 1fr 80px',
+                                alignItems: 'center',
+                                gap: 12,
+                                padding: '10px 0',
+                                borderBottom:
+                                    i < activity.length - 1 ? '1px solid var(--border)' : 'none',
+                            }}
+                        >
+                            <span style={{ color: toneColor(event.tone), display: 'inline-flex' }}>
+                                <Icon name={event.icon} size={14} />
+                            </span>
+                            <div style={{ minWidth: 0 }}>
+                                <div
+                                    className="mono"
+                                    style={{ fontSize: 11.5, color: toneColor(event.tone) }}
+                                >
+                                    {event.type}
+                                </div>
+                                <div
+                                    className="mono"
+                                    style={{
+                                        fontSize: 11,
+                                        color: 'var(--text-2)',
+                                        marginTop: 2,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                    }}
+                                >
+                                    {event.detail}
+                                </div>
                             </div>
-                            <div
+                            <span
                                 className="mono"
                                 style={{
-                                    fontSize: 11,
-                                    color: 'var(--text-2)',
-                                    marginTop: 2,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
+                                    fontSize: 10.5,
+                                    color: 'var(--text-3)',
+                                    textAlign: 'right',
                                 }}
                             >
-                                {event.detail}
-                            </div>
+                                {event.ts}
+                            </span>
                         </div>
-                        <span
-                            className="mono"
-                            style={{ fontSize: 10.5, color: 'var(--text-3)', textAlign: 'right' }}
-                        >
-                            {event.ts}
-                        </span>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
         </div>
     )
