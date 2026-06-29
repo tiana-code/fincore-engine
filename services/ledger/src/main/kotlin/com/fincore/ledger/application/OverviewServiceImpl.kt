@@ -20,39 +20,36 @@ class OverviewServiceImpl(
 ) : OverviewService {
     @Transactional(readOnly = true)
     override fun overview(): OverviewSnapshot {
-        val txItems =
-            transactionRepository.findRecentActivity(ACTIVITY_LIMIT).map { row ->
-                ActivityItem(
-                    type = if (row.reversal) ActivityType.TRANSACTION_REVERSED else ActivityType.TRANSACTION_POSTED,
-                    resourceId = UUID.fromString(row.id),
-                    label = row.label,
-                    amount = row.amount,
-                    currency = row.currency,
-                    occurredAt = row.postedat,
-                )
-            }
-
-        val accountItems =
-            accountRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, ACTIVITY_LIMIT)).map { entity ->
-                ActivityItem(
-                    type = ActivityType.ACCOUNT_CREATED,
-                    resourceId = entity.id,
-                    label = entity.name,
-                    amount = null,
-                    currency = entity.currency,
-                    occurredAt = entity.createdAt,
-                )
-            }
-
         val activity =
-            (txItems + accountItems)
+            (transactionItems() + accountItems())
                 .sortedByDescending { it.occurredAt }
                 .take(ACTIVITY_LIMIT)
-
-        val sparkline = buildSparkline()
-
-        return OverviewSnapshot(activity = activity, transactionsLast24h = sparkline)
+        return OverviewSnapshot(activity = activity, transactionsLast24h = buildSparkline())
     }
+
+    private fun transactionItems(): List<ActivityItem> =
+        transactionRepository.findRecentActivity(ACTIVITY_LIMIT).map { row ->
+            ActivityItem(
+                type = if (row.reversal) ActivityType.TRANSACTION_REVERSED else ActivityType.TRANSACTION_POSTED,
+                resourceId = UUID.fromString(row.id),
+                label = row.label,
+                amount = row.amount,
+                currency = row.currency,
+                occurredAt = row.postedat,
+            )
+        }
+
+    private fun accountItems(): List<ActivityItem> =
+        accountRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, ACTIVITY_LIMIT)).map { entity ->
+            ActivityItem(
+                type = ActivityType.ACCOUNT_CREATED,
+                resourceId = entity.id,
+                label = entity.name,
+                amount = null,
+                currency = entity.currency,
+                occurredAt = entity.createdAt,
+            )
+        }
 
     /**
      * Builds a dense 24-slot hourly array (oldest-first) by bucketing raw posted_at
