@@ -44,7 +44,9 @@ class OverviewQueryIntegrationTest(
         }
     }
 
-    private val baseHour = Instant.parse("2026-06-28T08:00:00Z").truncatedTo(ChronoUnit.HOURS)
+    // An obscure window inside the last entries partition (< 2027-04-01) so this shared-container
+    // test is immune to rows committed by other integration tests (ordering + bucket counts).
+    private val baseHour = Instant.parse("2027-03-15T08:00:00Z").truncatedTo(ChronoUnit.HOURS)
 
     private fun saveAccount(): AccountEntity {
         val id = UUID.randomUUID()

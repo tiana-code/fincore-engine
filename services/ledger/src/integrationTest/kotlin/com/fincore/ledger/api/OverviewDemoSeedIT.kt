@@ -4,10 +4,8 @@
 package com.fincore.ledger.api
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fincore.test.containers.PostgresContainerExtension
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
@@ -21,10 +19,10 @@ import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.JwtDecoder
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
+import org.testcontainers.containers.PostgreSQLContainer
 import java.time.Instant
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ExtendWith(PostgresContainerExtension::class)
 @Import(OverviewDemoSeedIT.TestSecurity::class)
 class OverviewDemoSeedIT(
     @Autowired private val rest: TestRestTemplate,
@@ -67,12 +65,21 @@ class OverviewDemoSeedIT(
         private const val EXPIRY_SECONDS = 300L
         private const val SPARK_HOURS = 24
 
+        // Dedicated container: the demo seed commits rows, so it must not share the singleton
+        // database used by the other integration tests (it would skew their ordering/counts).
+        private val postgres =
+            PostgreSQLContainer("postgres:17-alpine")
+                .withDatabaseName("fincore_demo_seed")
+                .withUsername("fincore")
+                .withPassword("fincore")
+                .also { it.start() }
+
         @JvmStatic
         @DynamicPropertySource
         fun datasourceProperties(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url") { PostgresContainerExtension.jdbcUrl }
-            registry.add("spring.datasource.username") { PostgresContainerExtension.username }
-            registry.add("spring.datasource.password") { PostgresContainerExtension.password }
+            registry.add("spring.datasource.url") { postgres.jdbcUrl }
+            registry.add("spring.datasource.username") { postgres.username }
+            registry.add("spring.datasource.password") { postgres.password }
             registry.add("spring.jpa.hibernate.ddl-auto") { "none" }
             registry.add("spring.liquibase.contexts") { "production,demo" }
         }
