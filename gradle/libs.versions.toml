@@ -3,23 +3,23 @@ kotlin = "2.0.21"
 spring-boot = "3.5.15"
 hibernate = "6.6.18.Final"
 liquibase = "4.31.1"
-postgres-jdbc = "42.7.11"
+postgres-jdbc = "42.7.13"
 keycloak = "26.6.1"
 mapstruct = "1.6.3"
 testcontainers = "1.21.4"
 kotest = "5.9.1"
-mockk = "1.13.13"
+mockk = "1.14.11"
 junit = "5.11.4"
 ulid = "5.2.4"
 ktlint = "1.5.0"
 detekt = "1.23.8"
 springdoc = "2.7.0"
-jackson = "2.22.0"
+jackson = "2.22.1"
 cloudevents = "4.1.1"
 ksp = "2.0.21-1.0.28"
 spring-dependency-management = "1.1.7"
-spotless = "8.7.0"
-cyclonedx = "3.2.4"
+spotless = "8.8.0"
+cyclonedx = "3.3.0"
 
 [libraries]
 # Kotlin
@@ -79,7 +79,7 @@ springdoc-openapi-starter = { module = "org.springdoc:springdoc-openapi-starter-
 testcontainers-core = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 testcontainers-postgres = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
 testcontainers-redpanda = { module = "org.testcontainers:redpanda", version.ref = "testcontainers" }
-testcontainers-keycloak = { module = "com.github.dasniko:testcontainers-keycloak", version = "4.2.1" }
+testcontainers-keycloak = { module = "com.github.dasniko:testcontainers-keycloak", version = "4.3.1" }
 testcontainers-junit5 = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
 kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
 kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
