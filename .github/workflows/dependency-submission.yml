@@ -25,7 +25,7 @@ jobs:
           java-version: "21"
 
       - name: Submit dependency graph
-        uses: gradle/actions/dependency-submission@v6
+        uses: gradle/actions/dependency-submission@v6.2.0
         with:
           # Supply-chain enrichment feed for Dependabot, not a correctness gate
           # (build/test/security gates live in ci.yml). A platform-side rejection
